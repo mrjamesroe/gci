@@ -32,8 +32,19 @@ All of these menus are public; no login or patient ID is needed to read them.
 Trulieve and Botanical Sciences store lists are discovered automatically each day; new stores are announced and
 dispensaries are auto-monitored. Partner pharmacies are off by default (except Lotus Farmacy): turn them on in **Stores**.
 
-Jane and Dutchie sit behind Cloudflare rules that reject .NET's TLS handshake, so GCI automatically routes those
-requests through Windows' built-in `C:\Windows\System32\curl.exe`.
+Jane and Dutchie sit behind Cloudflare bot rules that fingerprint the connection and reject .NET's. When a host answers
+with a Cloudflare block page, GCI escalates automatically and remembers what worked:
+
+1. Windows' built-in `C:\Windows\System32\curl.exe`, which Cloudflare accepts on most PCs.
+2. If curl is blocked too (it depends on the PC and network) or can't run (some antivirus stops apps launching it),
+   a hidden **Microsoft Edge WebView2**. It loads a blank page on the menu API's own site and reads the menu from
+   there, exactly as the store's website does, with Edge's own connection and cookies. If Cloudflare shows a
+   "checking your browser" page, WebView2 opens the site's home page invisibly and lets the check finish. It starts
+   only when needed and closes after 3 idle minutes. The WebView2 Runtime comes with Windows 11 and up-to-date
+   Windows 10; if it's missing, the store's status in **Stores** gives Microsoft's download link.
+
+If a store is still blocked after all that, its **Stores** status says so; a VPN, proxy or network filter is the usual
+cause. `GCI_NO_CURL=1` skips step 1, to test step 2 on a PC where curl works.
 
 ## Change detection
 
@@ -105,8 +116,8 @@ sends:
 
 | Event | What it contains |
 |---|---|
-| `app_started`, `session_ended` | GCI version, Windows version/build, CPU count, RAM, screen size and scaling, language, time zone, dark mode, where the exe lives (a category like "documents", never a path), settings (refresh interval, notifications on/off, whether phone push is set up), counts of watches/stores/feeds, whether a patient profile exists and a card-expiry bucket (e.g. "under 30 days"), install week and launch count |
-| `daily_summary` | Once a day: which stores you monitor (one flag per store), how many watches and what kinds, items in stock by category, refresh counts/timings/failures, alerts sent, news and image-cache counts |
+| `app_started`, `session_ended` | GCI version, Windows version/build, Edge WebView2 major version (or none), CPU count, RAM, screen size and scaling, language, time zone, dark mode, where the exe lives (a category like "documents", never a path), settings (refresh interval, notifications on/off, whether phone push is set up), counts of watches/stores/feeds, whether a patient profile exists and a card-expiry bucket (e.g. "under 30 days"), install week and launch count |
+| `daily_summary` | Once a day: which stores you monitor (one flag per store), how many watches and what kinds, items in stock by category, refresh counts/timings/failures, which menu hosts needed curl or WebView2, alerts sent, news and image-cache counts |
 | `alert_sent`, `product_opened`, `store_menu_opened` | The store, operator, product name, brand, size, price and stock level (all from the stores' public menus) |
 | `watch_saved`, `watch_deleted`, `watch_toggled` | Category, operator, store scope, price/low-stock settings, and **only recognized product terms** from keywords ("crumble", "live rosin", …); anything else you type is counted, never sent. "Watch this product" sends the product's public name |
 | `news_opened`, `news_alert_sent`, `feed_added`/`removed` | The feed name or website host and post title |
@@ -190,7 +201,8 @@ dotnet run --project src/Gci.Cli -- refresh
 
 `%LOCALAPPDATA%\GCI`: `settings.json`, `watches.json`, `state.json` (last menu per store), `changes.json` (history),
 `stores.json`, `feeds.json` (followed feeds, posts, read state), `profile.dat`, `images\` (thumbnail cache +
-`index.json` of versions and product→image links), `telemetry.json` (unsent events, only if you opted in) and
+`index.json` of versions and product→image links), `webview\` (Edge WebView2 profile, only created if a menu needed
+it), `telemetry.json` (unsent events, only if you opted in) and
 `telemetry-log.jsonl` (what was sent).
 
 ### When a menu platform changes

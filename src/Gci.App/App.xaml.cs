@@ -15,6 +15,7 @@ public partial class App : Application
     private Mutex? _singleInstance;
     private EventWaitHandle? _showSignal;
     private InventoryService? _inventory;
+    private BrowserTransport? _browser;
     private Notifier? _notifier;
     private ThumbnailService? _thumbnails;
     private FeedService? _feeds;
@@ -75,7 +76,9 @@ public partial class App : Application
         };
 
         var data = new DataStore(customData);
-        _inventory = new InventoryService(data);
+        // Menus whose bot protection rejects both .NET and curl are read through a hidden Edge WebView2.
+        _browser = new BrowserTransport(data.PathFor("webview"), Dispatcher);
+        _inventory = new InventoryService(data, browser: _browser);
         _notifier = new Notifier();
         var userAgent = new ProviderConfig().UserAgent;
         _thumbnails = new ThumbnailService(data, userAgent, Dispatcher);
@@ -152,6 +155,8 @@ public partial class App : Application
         _tray = null;
         _vm?.Dispose();
         _inventory?.Dispose();
+        _browser?.Dispose();
+        _browser = null;
         _notifier?.Dispose();
         _thumbnails?.Dispose();
         _thumbnails = null;

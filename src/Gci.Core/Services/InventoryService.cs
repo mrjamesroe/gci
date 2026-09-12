@@ -40,11 +40,12 @@ public sealed class InventoryService : IDisposable
     private PersistedState _state;
     private List<ChangeEvent> _changes;
 
-    public InventoryService(DataStore data, ProviderConfig? config = null, HttpMessageHandler? handler = null)
+    public InventoryService(DataStore data, ProviderConfig? config = null, HttpMessageHandler? handler = null,
+        IBrowserTransport? browser = null)
     {
         _data = data;
         config ??= ProviderConfig.Load(data.PathFor(ProvidersOverrideFile));
-        _http = new ProviderHttp(config.UserAgent, handler);
+        _http = new ProviderHttp(config.UserAgent, handler, browser);
         _providers = new IInventoryProvider[]
         {
             new TrulieveProvider(_http, config.Trulieve),
@@ -62,6 +63,8 @@ public sealed class InventoryService : IDisposable
     public IReadOnlyList<StoreInfo> Stores { get { lock (_lock) return _stores.ToList(); } }
 
     public IReadOnlyCollection<string> CurlFallbackHosts => _http.CurlHosts;
+
+    public IReadOnlyCollection<string> BrowserFallbackHosts => _http.BrowserHosts;
 
     public IReadOnlyList<ChangeEvent> Changes { get { lock (_lock) return _changes.ToList(); } }
 

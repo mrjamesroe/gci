@@ -331,6 +331,7 @@ public sealed partial class MainViewModel
             ["images_removed"] = images.Removed,
             ["image_links_changed"] = images.LinksChanged,
             ["curl_hosts"] = string.Join(",", _inventory.CurlFallbackHosts.Order()),
+            ["browser_hosts"] = string.Join(",", _inventory.BrowserFallbackHosts.Order()),
             ["patient_profile"] = !Profile.Current.IsEmpty,
             ["card_expiry"] = ExpiryBucket(Profile.Current.DaysUntilExpiry(DateTime.Today)),
         };
@@ -378,6 +379,9 @@ public sealed partial class MainViewModel
     {
         var e = error.ToLowerInvariant();
         if (e.Contains("persisted query")) return "dutchie_query_hash";
+        if (e.Contains("webview2 runtime")) return "webview2_missing";
+        if (e.Contains("cloudflare")) return "cloudflare_blocked";
+        if (e.Contains("edge webview2")) return "webview2_failed";
         if (e.Contains("http 403")) return "http_403";
         if (e.Contains("http 404")) return "http_404";
         if (e.Contains("http 429")) return "http_429";
