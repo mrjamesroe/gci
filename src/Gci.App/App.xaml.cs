@@ -28,10 +28,16 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // A second launch just brings the running copy forward. Right after an update the previous version may
-        // still be shutting down, so the new one waits for it instead of deferring to it.
+        // --data <folder> keeps a separate profile (handy for testing); default is %LOCALAPPDATA%\GCI.
+        var dataIndex = Array.IndexOf(e.Args, "--data");
+        var customData = dataIndex >= 0 && dataIndex + 1 < e.Args.Length ? e.Args[dataIndex + 1] : null;
+
+        // One copy per data folder: a second launch just brings the running copy forward. The default profile keeps
+        // the original lock name so an update can hand over to the new version. Right after an update the previous
+        // version may still be shutting down, so the new one waits for it instead of deferring to it.
+        var instance = customData is null ? InstanceName : $"{InstanceName}.{ProfileId(customData)}";
         var justUpdated = e.Args.Contains(UpdateInstaller.UpdatedFlag);
-        _singleInstance = new Mutex(false, $"{InstanceName}.Mutex");
+        _singleInstance = new Mutex(false, $"{instance}.Mutex");
         bool isFirst;
         try
         {
@@ -45,11 +51,11 @@ public partial class App : Application
         {
             _singleInstance.Dispose();
             _singleInstance = null;
-            try { EventWaitHandle.OpenExisting($"{InstanceName}.Show").Set(); } catch (WaitHandleCannotBeOpenedException) { }
+            try { EventWaitHandle.OpenExisting($"{instance}.Show").Set(); } catch (WaitHandleCannotBeOpenedException) { }
             Shutdown();
             return;
         }
-        _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, $"{InstanceName}.Show");
+        _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, $"{instance}.Show");
         ThreadPool.RegisterWaitForSingleObject(_showSignal, (_, _) => Dispatcher.BeginInvoke(ShowWindow), null, Timeout.Infinite, false);
 
         DispatcherUnhandledException += (_, args) =>
@@ -68,9 +74,7 @@ public partial class App : Application
             args.SetObserved();
         };
 
-        // --data <folder> keeps a separate profile (handy for testing); default is %LOCALAPPDATA%\GCI.
-        var dataIndex = Array.IndexOf(e.Args, "--data");
-        var data = new DataStore(dataIndex >= 0 && dataIndex + 1 < e.Args.Length ? e.Args[dataIndex + 1] : null);
+        var data = new DataStore(customData);
         _inventory = new InventoryService(data);
         _notifier = new Notifier();
         var userAgent = new ProviderConfig().UserAgent;
@@ -123,6 +127,13 @@ public partial class App : Application
     }
 
     private void ShowWindow() => _window?.BringToFront();
+
+    /// <summary>Short stable id for a custom data folder, used to scope the single-instance lock.</summary>
+    private static string ProfileId(string folder)
+    {
+        var path = System.IO.Path.GetFullPath(folder).TrimEnd('\\', '/').ToUpperInvariant();
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(path)))[..12];
+    }
 
     private bool _exiting;
 

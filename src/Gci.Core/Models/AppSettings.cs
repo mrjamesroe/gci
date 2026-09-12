@@ -13,6 +13,8 @@ public sealed class AppSettings
     public bool ToastNotifications { get; set; } = true;
     /// <summary>Optional ntfy topic URL (e.g. https://ntfy.sh/my-topic) for phone push.</summary>
     public string? NtfyTopicUrl { get; set; }
+    /// <summary>The user said "Not now" to the phone-alerts reminder.</summary>
+    public bool PhoneNudgeDismissed { get; set; }
     public bool MinimizeToTray { get; set; } = true;
     public bool StartWithWindows { get; set; }
     public bool StartMinimized { get; set; }

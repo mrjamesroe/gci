@@ -113,15 +113,32 @@ sends:
 | `tab_viewed`, `filter_used`, `search_used`, `setting_changed`, `tray_action`, `toast_clicked` | Which screen, filter value, or setting (searches are counted; search text is never sent) |
 | `platform_error`, crash reports | The menu platform and an error category; crash reports carry the error type and stack trace with your Windows username, profile path, emails and long numbers removed |
 | `update_*`, `app_upgraded` | Version numbers and whether updating succeeded |
+| `phone_setup_*`, `phone_nudge_dismissed` | Whether phone alerts were set up, whether the test push worked, and whether the server is the public ntfy.sh (never the topic name) |
 
 **Never sent:** your patient details (name, date of birth, card number, card dates, caregiver), watch names or any
 free text you type, search text, your ntfy topic, file paths, or anything that identifies you or your PC. Volume is
 capped at 150 events per day per install.
 
-## Phone notifications (optional)
+## Phone alerts
 
-Install the [ntfy](https://ntfy.sh) app, subscribe to a hard-to-guess topic, and paste its URL (e.g.
-`https://ntfy.sh/gci-yourname-4821`) in **Settings**. Only product/store info is sent.
+Desktop notifications only help while you're at your PC, and drops can sell out overnight. **Settings → Set up phone
+alerts** (or the reminder that appears once you have a watch) sends watch alerts to your phone through the free
+[ntfy](https://ntfy.sh) app:
+
+1. Install ntfy ([iPhone](https://apps.apple.com/us/app/ntfy/id1625396347),
+   [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy)); no account needed.
+2. GCI creates a private, random topic. **Android:** scan the QR code and ntfy subscribes. **iPhone:** tap + in ntfy
+   and enter the topic name shown (there's a Copy button).
+3. **Send test notification** to confirm.
+
+Every alert has an **Order now** button (and tapping the notification does the same) that opens the product page for
+that store; Trulieve links pre-select the store. The link is also the last line of the alert text, since the iPhone
+app doesn't show action buttons. Sold-out alerts get a **View** button instead. Only product and store information is
+sent; anyone who knows the topic name can read it, so keep it private (**Make a new topic** replaces it). Self-hosted
+ntfy servers work too: paste the topic URL into the Settings box.
+
+GCI can't buy for you: checkout needs your own logged-in store account, and Trulieve requires your medical ID on
+file (no guest checkout). Set that account up ahead of time so an alert can become an order in under a minute.
 
 ## Build & run
 
@@ -139,7 +156,8 @@ Standalone single-file build (no .NET install needed on the target PC) → `publ
 dotnet publish src/Gci.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 ```
 
-App options: `--minimized` (start in the tray), `--data <folder>` (use a separate data folder, handy for testing).
+App options: `--minimized` (start in the tray), `--data <folder>` (use a separate data folder, handy for testing; one
+copy runs per data folder, so a test profile can run alongside your normal one).
 
 ### Releasing
 

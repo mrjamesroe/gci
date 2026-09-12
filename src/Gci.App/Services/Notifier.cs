@@ -19,7 +19,7 @@ public sealed class Notifier : IDisposable
         if (settings.ToastNotifications)
         {
             foreach (var (e, rule) in distinct.Take(MaxIndividualToasts))
-                ShowToast(Title(e), Body(e), e.StoreName, e.Url, rule.Name);
+                ShowToast(Title(e), Body(e), e.StoreName, e.Url, rule.Name, ActionLabel(e));
             if (distinct.Count > MaxIndividualToasts)
             {
                 var rest = distinct.Skip(MaxIndividualToasts).ToList();
@@ -32,9 +32,12 @@ public sealed class Notifier : IDisposable
         if (!string.IsNullOrWhiteSpace(settings.NtfyTopicUrl))
         {
             foreach (var (e, _) in distinct.Take(8))
-                await SendNtfyAsync(settings.NtfyTopicUrl!, Title(e), $"{Body(e)}\n{e.StoreName}", e.Url);
+                await SendNtfyAsync(settings.NtfyTopicUrl!, Title(e), $"{Body(e)}\n{e.StoreName}", e.Url, ActionLabel(e));
         }
     }
+
+    /// <summary>"Order now" whenever the item can be bought; just "View" once it's gone.</summary>
+    internal static string ActionLabel(ChangeEvent e) => e.Kind == ChangeKind.SoldOut ? "View" : "Order now";
 
     /// <summary>New posts from followed feeds; posts mentioning a watch keyword say so in the title.</summary>
     public async Task NotifyPostsAsync(IReadOnlyList<(FeedPost Post, string Source, string? Watch)> posts, AppSettings settings)
@@ -52,7 +55,8 @@ public sealed class Notifier : IDisposable
         if (!string.IsNullOrWhiteSpace(settings.NtfyTopicUrl))
         {
             foreach (var (post, source, watch) in posts.Take(8))
-                await SendNtfyAsync(settings.NtfyTopicUrl!, $"{(watch is null ? "" : "★ ")}{source}: {post.Title}", post.Summary ?? post.Title, post.Link);
+                await SendNtfyAsync(settings.NtfyTopicUrl!, $"{(watch is null ? "" : "★ ")}{source}: {post.Title}", post.Summary ?? post.Title,
+                    post.Link, "Read post");
         }
     }
 
@@ -82,18 +86,11 @@ public sealed class Notifier : IDisposable
         }
     }
 
-    public async Task<string?> SendNtfyAsync(string topicUrl, string title, string body, string? clickUrl)
+    public async Task<string?> SendNtfyAsync(string topicUrl, string title, string body, string? url, string actionLabel = "Open")
     {
         try
         {
-            using var req = new HttpRequestMessage(HttpMethod.Post, topicUrl)
-            {
-                Content = new StringContent(body, Encoding.UTF8, "text/plain"),
-            };
-            // ntfy header values must be ASCII; non-ASCII titles go through RFC 2047 encoding.
-            req.Headers.TryAddWithoutValidation("Title", IsAscii(title) ? title : $"=?UTF-8?B?{Convert.ToBase64String(Encoding.UTF8.GetBytes(title))}?=");
-            req.Headers.TryAddWithoutValidation("Tags", "leaves");
-            if (clickUrl is not null) req.Headers.TryAddWithoutValidation("Click", clickUrl);
+            using var req = BuildNtfyRequest(topicUrl, title, body, url, actionLabel);
             using var res = await _http.SendAsync(req);
             return res.IsSuccessStatusCode ? null : $"ntfy returned HTTP {(int)res.StatusCode}";
         }
@@ -101,6 +98,31 @@ public sealed class Notifier : IDisposable
         {
             return ex.Message;
         }
+    }
+
+    /// <summary>
+    /// An ntfy push. With a link: tapping the notification opens it (Click), an action button opens it too
+    /// (Actions; Android and web), and the link is the last line of the message so it's reachable in the iPhone app,
+    /// which doesn't show action buttons.
+    /// </summary>
+    internal static HttpRequestMessage BuildNtfyRequest(string topicUrl, string title, string body, string? url, string actionLabel)
+    {
+        var text = url is null ? body : $"{body}\n{actionLabel}: {url}";
+        var req = new HttpRequestMessage(HttpMethod.Post, topicUrl)
+        {
+            Content = new StringContent(text, Encoding.UTF8, "text/plain"),
+        };
+        // ntfy header values must be ASCII; non-ASCII titles go through RFC 2047 encoding.
+        req.Headers.TryAddWithoutValidation("Title", IsAscii(title) ? title : $"=?UTF-8?B?{Convert.ToBase64String(Encoding.UTF8.GetBytes(title))}?=");
+        req.Headers.TryAddWithoutValidation("Tags", "leaves");
+        if (url is not null && IsAscii(url))
+        {
+            req.Headers.TryAddWithoutValidation("Click", url);
+            // Quote the URL if it contains the action syntax's separators.
+            var quoted = url.IndexOfAny([',', ';']) >= 0 ? $"\"{url}\"" : url;
+            req.Headers.TryAddWithoutValidation("Actions", $"action=view, label={actionLabel}, url={quoted}, clear=true");
+        }
+        return req;
     }
 
     private static string Title(ChangeEvent e) => e.Kind switch

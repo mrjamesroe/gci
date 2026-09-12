@@ -80,6 +80,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         RebuildFeedRows();
         if (EnabledKeys().Select(k => _inventory.GetStatus(k)?.LastSuccess).Max() is { } cached)
             LastRefreshText = $"Updated {cached.LocalDateTime:MMM d, h:mm tt}";
+        UpdatePhoneNudge();
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
         _timer.Tick += (_, _) => OnTick();
@@ -91,6 +92,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>Set by the view: shows the watch editor, returns true when saved.</summary>
     public Func<WatchEditorViewModel, bool>? ShowWatchEditor { get; set; }
+    /// <summary>Set by the view: shows the phone-alerts setup dialog.</summary>
+    public Action<PhoneSetupViewModel>? ShowPhoneSetup { get; set; }
     public Func<string, bool>? Confirm { get; set; }
     /// <summary>Raised with a short status line for the tray tooltip.</summary>
     public event Action<string>? TrayStatusChanged;
@@ -198,6 +201,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SaveSettings();
         // Only whether phone push is configured, never the topic URL.
         if (wasSet != (Settings.NtfyTopicUrl is not null)) TrackSetting("ntfy", Settings.NtfyTopicUrl is not null);
+        UpdatePhoneNudge();
     }
 
     partial void OnStartWithWindowsChanged(bool value)
@@ -644,6 +648,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         RebuildNews();
         StatusText = isNew ? $"Watching \"{updated.Name}\"." : $"Updated \"{updated.Name}\".";
         TrackWatchSaved(updated, source, isNew);
+        UpdatePhoneNudge();
     }
 
     // ---- Changes ------------------------------------------------------------------------------
@@ -690,6 +695,33 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private void OpenDataFolder() => OpenUrl(_data.Root);
+
+    // ---- Phone alerts -------------------------------------------------------------------------
+
+    /// <summary>Shown once someone has a watch but no phone alerts, since desktop-only alerts miss overnight drops.</summary>
+    [ObservableProperty] private bool _showPhoneNudge;
+
+    private void UpdatePhoneNudge() =>
+        ShowPhoneNudge = _watches.Count > 0 && string.IsNullOrWhiteSpace(Settings.NtfyTopicUrl) && !Settings.PhoneNudgeDismissed;
+
+    [RelayCommand]
+    private void OpenPhoneSetup()
+    {
+        if (ShowPhoneSetup is null) return;
+        var setup = new PhoneSetupViewModel(Settings.NtfyTopicUrl, _notifier, url => NtfyTopicUrl = url ?? "", _telemetry);
+        ShowPhoneSetup(setup);
+        UpdatePhoneNudge();
+        SettingsMessage = string.IsNullOrWhiteSpace(Settings.NtfyTopicUrl) ? "Phone alerts are off." : "Phone alerts are on.";
+    }
+
+    [RelayCommand]
+    private void DismissPhoneNudge()
+    {
+        Settings.PhoneNudgeDismissed = true;
+        SaveSettings();
+        UpdatePhoneNudge();
+        _telemetry.Track("phone_nudge_dismissed");
+    }
 
     // ---- Updates ------------------------------------------------------------------------------
 
