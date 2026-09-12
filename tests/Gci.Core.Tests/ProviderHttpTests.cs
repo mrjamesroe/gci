@@ -117,4 +117,38 @@ public class ProviderHttpTests
     [InlineData(200, "<html></html>", false)]
     public void Recognizes_cloudflare_block_and_challenge_pages(int status, string body, bool blocked) =>
         Assert.Equal(blocked, ProviderHttp.IsBlocked((status, body)));
+
+    // Windows 10's original curl build: no zlib, so --compressed makes it exit with code 2.
+    private const string OldWindowsCurl = """
+        curl 7.55.1 (Windows) libcurl/7.55.1 WinSSL
+        Release-Date: [unreleased]
+        Protocols: dict file ftp ftps http https imap imaps pop3 pop3s smtp smtps telnet tftp
+        Features: AsynchDNS IPv6 Largefile SSPI Kerberos SPNEGO NTLM SSL
+        """;
+
+    private const string CurrentWindowsCurl = """
+        curl 8.21.0 (Windows) libcurl/8.21.0 Schannel zlib/1.3.2 WinIDN WinLDAP
+        Release-Date: 2026-06-24
+        Protocols: dict file ftp ftps http https imap imaps ldap ldaps mqtt pop3 pop3s smtp smtps telnet tftp ws wss
+        Features: alt-svc AsynchDNS HSTS HTTPS-proxy IDN IPv6 Kerberos Largefile libz SPNEGO SSL SSPI threadsafe Unicode UnixSockets
+        """;
+
+    [Fact]
+    public void Compression_is_only_requested_from_curl_builds_that_support_it()
+    {
+        Assert.False(ProviderHttp.SupportsCompression(OldWindowsCurl));
+        Assert.True(ProviderHttp.SupportsCompression(CurrentWindowsCurl));
+        Assert.False(ProviderHttp.SupportsCompression(""));
+
+        var headers = new Dictionary<string, string> { ["apollo-require-preflight"] = "true" };
+        var old = ProviderHttp.CurlArguments(HttpMethod.Get, Url, false, headers, "GCI", compressed: false);
+        var current = ProviderHttp.CurlArguments(HttpMethod.Post, Url, true, headers, "GCI", compressed: true);
+
+        Assert.DoesNotContain("--compressed", old);
+        Assert.Contains("--compressed", current);
+        Assert.Equal(Url, old[^1]);
+        Assert.Contains("apollo-require-preflight: true", old);
+        Assert.Equal(["--data-binary", "@-"], current.Skip(current.Count - 3).Take(2));
+        Assert.Contains("Content-Type: application/json", current);
+    }
 }

@@ -143,7 +143,7 @@ public sealed class ProviderHttp : IDisposable
                         _routes[host] = Route.Curl;
                         return viaCurl;
                     }
-                    curlProblem = "was blocked too";
+                    curlProblem = "was turned away too";
                 }
                 catch (Exception ex) when (!ct.IsCancellationRequested && ex is ProviderException or System.ComponentModel.Win32Exception)
                 {
@@ -157,8 +157,8 @@ public sealed class ProviderHttp : IDisposable
         }
 
         if (Browser is null)
-            throw new HostBlockedException($"{host} is blocking GCI (Cloudflare bot protection) and Windows' curl {curlProblem}. " +
-                                           "The GCI app can read it through Microsoft Edge WebView2 instead.");
+            throw new HostBlockedException($"{host}'s bot protection (Cloudflare) turns away GCI's built-in connection, and the " +
+                                           $"fallback, Windows' curl, {curlProblem}. The GCI app can read it through Microsoft Edge WebView2 instead.");
         try
         {
             var viaBrowser = await Browser.SendAsync(method, url, json, headers, ct);
@@ -171,8 +171,8 @@ public sealed class ProviderHttp : IDisposable
         }
         catch (BrowserUnavailableException ex)
         {
-            throw new HostBlockedException($"{host} is blocking GCI (Cloudflare bot protection) and Windows' curl {curlProblem}. " +
-                                           $"GCI reads such menus through Microsoft Edge WebView2, but {ex.Message}. " +
+            throw new HostBlockedException($"{host}'s bot protection (Cloudflare) turns away GCI's built-in connection, and the " +
+                                           $"fallback, Windows' curl, {curlProblem}. The next fallback is Microsoft Edge WebView2, but {ex.Message}. " +
                                            $"Install the WebView2 Runtime from {BrowserUnavailableException.DownloadUrl}");
         }
     }
@@ -210,29 +210,8 @@ public sealed class ProviderHttp : IDisposable
             CreateNoWindow = true,
             StandardOutputEncoding = Encoding.UTF8,
         };
-        foreach (var arg in new[] { "-s", "-S", "--compressed", "--max-time", "30", "-X", method.Method, "-A", _userAgent,
-                     "-H", "Accept-Language: en-US", "-w", "\n%{http_code}" })
+        foreach (var arg in CurlArguments(method, url, json is not null, headers, _userAgent, CurlCompression.Value))
             psi.ArgumentList.Add(arg);
-        var hasAccept = headers?.Keys.Any(k => k.Equals("Accept", StringComparison.OrdinalIgnoreCase)) == true;
-        if (!hasAccept) { psi.ArgumentList.Add("-H"); psi.ArgumentList.Add("Accept: application/json"); }
-        var hasContentType = false;
-        foreach (var (k, v) in headers ?? new Dictionary<string, string>())
-        {
-            hasContentType |= k.Equals("Content-Type", StringComparison.OrdinalIgnoreCase);
-            psi.ArgumentList.Add("-H");
-            psi.ArgumentList.Add($"{k}: {v}");
-        }
-        if (json is not null)
-        {
-            if (!hasContentType)
-            {
-                psi.ArgumentList.Add("-H");
-                psi.ArgumentList.Add("Content-Type: application/json");
-            }
-            psi.ArgumentList.Add("--data-binary");
-            psi.ArgumentList.Add("@-");
-        }
-        psi.ArgumentList.Add(url);
 
         using var proc = Process.Start(psi) ?? throw new ProviderException("Could not start curl.exe");
         using var reg = ct.Register(() => { try { proc.Kill(); } catch { /* already exited */ } });
@@ -249,9 +228,65 @@ public sealed class ProviderHttp : IDisposable
 
         var split = output.LastIndexOf('\n');
         if (proc.ExitCode != 0 || split < 0 || !int.TryParse(output[(split + 1)..].Trim(), out var status))
-            throw new ProviderException($"curl.exe failed ({proc.ExitCode}) for {new Uri(url).Host}: {error.Trim()}");
+        {
+            var firstLine = error.Trim().Split('\n', 2)[0].Trim();
+            throw new ProviderException($"curl.exe failed ({proc.ExitCode}) for {new Uri(url).Host}: {firstLine}");
+        }
         return (status, output[..split]);
     }
+
+    internal static List<string> CurlArguments(HttpMethod method, string url, bool hasBody,
+        IDictionary<string, string>? headers, string userAgent, bool compressed)
+    {
+        var args = new List<string> { "-s", "-S", "--max-time", "30", "-X", method.Method, "-A", userAgent,
+            "-H", "Accept-Language: en-US", "-w", "\n%{http_code}" };
+        // Older Windows builds of curl have no zlib and exit with code 2 if asked to decompress.
+        if (compressed) args.Insert(2, "--compressed");
+        var hasAccept = headers?.Keys.Any(k => k.Equals("Accept", StringComparison.OrdinalIgnoreCase)) == true;
+        if (!hasAccept) args.AddRange(["-H", "Accept: application/json"]);
+        var hasContentType = false;
+        foreach (var (k, v) in headers ?? new Dictionary<string, string>())
+        {
+            hasContentType |= k.Equals("Content-Type", StringComparison.OrdinalIgnoreCase);
+            args.AddRange(["-H", $"{k}: {v}"]);
+        }
+        if (hasBody)
+        {
+            if (!hasContentType) args.AddRange(["-H", "Content-Type: application/json"]);
+            args.AddRange(["--data-binary", "@-"]);
+        }
+        args.Add(url);
+        return args;
+    }
+
+    /// <summary>Whether a curl build (from its <c>curl -V</c> output) can decompress responses.</summary>
+    internal static bool SupportsCompression(string versionOutput) =>
+        versionOutput.Split('\n').Select(l => l.Trim())
+            .FirstOrDefault(l => l.StartsWith("Features:", StringComparison.OrdinalIgnoreCase)) is { } features
+        && features.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Any(f => f.Equals("libz", StringComparison.OrdinalIgnoreCase) || f.Equals("brotli", StringComparison.OrdinalIgnoreCase)
+                      || f.Equals("zstd", StringComparison.OrdinalIgnoreCase));
+
+    private static readonly Lazy<bool> CurlCompression = new(() =>
+    {
+        try
+        {
+            using var proc = Process.Start(new ProcessStartInfo(CurlPath!, "-V")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+            if (proc is null) return false;
+            var output = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit(5000);
+            return SupportsCompression(output);
+        }
+        catch (Exception)
+        {
+            return false; // uncompressed always works
+        }
+    });
 
     /// <summary>A Cloudflare block or challenge page (as opposed to the API's own error response).</summary>
     public static bool IsBlocked((int Status, string Body) response) =>
