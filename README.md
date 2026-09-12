@@ -35,7 +35,8 @@ dispensaries are auto-monitored. Partner pharmacies are off by default (except L
 Jane and Dutchie sit behind Cloudflare bot rules that fingerprint the connection and reject .NET's. When a host answers
 with a Cloudflare block page, GCI escalates automatically and remembers what worked:
 
-1. Windows' built-in `C:\Windows\System32\curl.exe`, which Cloudflare accepts on most PCs.
+1. Windows' built-in `C:\Windows\System32\curl.exe`, which Cloudflare accepts on most PCs. Older Windows 10 builds of
+   curl can't decompress responses, so GCI checks `curl -V` and only asks for compressed responses when it can.
 2. If curl is blocked too (it depends on the PC and network) or can't run (some antivirus stops apps launching it),
    a hidden **Microsoft Edge WebView2**. It loads a blank page on the menu API's own site and reads the menu from
    there, exactly as the store's website does, with Edge's own connection and cookies. If Cloudflare shows a
