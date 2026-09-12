@@ -1,0 +1,45 @@
+name: Build
+
+# Every push and pull request runs the tests. Pushing a version tag (e.g. v1.0.1) also publishes a GitHub release
+# with gci.exe and gci.exe.sha256, which is what the in-app updater looks for.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Test
+        run: dotnet test Gci.sln -c Release
+
+      - name: Publish single-file exe
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          dotnet publish src/Gci.App -c Release -r win-x64 --self-contained `
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$version -o publish
+          $hash = (Get-FileHash publish/gci.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText("$PWD/publish/gci.exe.sha256", "$hash  gci.exe`n")
+          "gci.exe SHA-256: $hash" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create '${{ github.ref_name }}' publish/gci.exe publish/gci.exe.sha256 `
+            --title 'GCI ${{ github.ref_name }}' --notes-from-tag --verify-tag

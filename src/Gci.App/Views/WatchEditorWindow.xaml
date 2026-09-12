@@ -1,0 +1,107 @@
+<Window x:Class="Gci.App.Views.WatchEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Gci.App.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:WatchEditorViewModel}"
+        Style="{StaticResource {x:Type Window}}"
+        Title="Watch" Width="820" Height="640" MinWidth="700" MinHeight="520"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
+    <Grid Margin="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.1*" />
+            <ColumnDefinition Width="20" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Name" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />
+                <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+
+                <TextBlock Text="Keywords (comma-separated; any one can match)" Style="{StaticResource FieldLabel}" />
+                <TextBox Text="{Binding Keywords, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
+                <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,0"
+                           Text="Words inside one keyword must all appear: &quot;live rosin&quot; won't match &quot;live resin&quot;. Searches product name, brand, strain type and category." />
+
+                <Grid Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Category" Style="{StaticResource FieldLabel}" />
+                        <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" Margin="0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Operator" Style="{StaticResource FieldLabel}" />
+                        <ComboBox ItemsSource="{Binding Operators}" SelectedItem="{Binding SelectedOperator}" Margin="0" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Max price ($, optional)" Style="{StaticResource FieldLabel}" />
+                        <TextBox Text="{Binding MaxPrice, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Low-stock alert (units)" Style="{StaticResource FieldLabel}" />
+                        <TextBox Text="{Binding LowStock, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Text="Notify me when a match…" Style="{StaticResource FieldLabel}" Margin="0,14,0,6" />
+                <CheckBox Content="appears (new, or back after selling out)" IsChecked="{Binding NotifyAvailable}" Margin="0,0,0,6" />
+                <CheckBox Content="is restocked (new batch, or unit count jumps)" IsChecked="{Binding NotifyRestock}" Margin="0,0,0,6" />
+                <CheckBox Content="drops in price" IsChecked="{Binding NotifyPriceDrop}" Margin="0,0,0,6" />
+                <CheckBox Content="sells out" IsChecked="{Binding NotifySoldOut}" Margin="0,0,0,6" />
+
+                <TextBlock Text="Stores" Style="{StaticResource FieldLabel}" Margin="0,14,0,6" />
+                <CheckBox Content="Any monitored store" IsChecked="{Binding AllStores}" Margin="0,0,0,6" />
+                <Border BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Height="170" Background="{StaticResource Card}"
+                        IsEnabled="{Binding AllStores, Converter={x:Static vm:InverseBoolConverter.Instance}}">
+                    <ListBox ItemsSource="{Binding StoreChoices}" BorderThickness="0" Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected}" Margin="0,2" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+
+                <CheckBox Content="Watch enabled" IsChecked="{Binding Enabled}" Margin="0,14,0,0" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Column="2" Style="{StaticResource CardBorder}" Padding="12">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Preview" Style="{StaticResource SectionTitle}" />
+                <TextBlock DockPanel.Dock="Top" Text="{Binding PreviewText}" TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,0,0,8" />
+                <ListBox ItemsSource="{Binding PreviewItems}" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,2" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Cancel" IsCancel="True" />
+            <Button Content="Save watch" Style="{StaticResource PrimaryButton}" IsDefault="True" Click="OnSave" Margin="0" />
+        </StackPanel>
+    </Grid>
+</Window>
