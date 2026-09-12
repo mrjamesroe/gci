@@ -61,6 +61,8 @@ public sealed class InventoryService : IDisposable
 
     public IReadOnlyList<StoreInfo> Stores { get { lock (_lock) return _stores.ToList(); } }
 
+    public IReadOnlyCollection<string> CurlFallbackHosts => _http.CurlHosts;
+
     public IReadOnlyList<ChangeEvent> Changes { get { lock (_lock) return _changes.ToList(); } }
 
     public StoreStatus? GetStatus(string storeKey)

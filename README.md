@@ -93,6 +93,31 @@ The **Patient** tab stores your name, date of birth, registry card number and ca
 (your Windows account only) in `profile.dat`. None of the menus need them, so GCI never sends them anywhere; it uses the
 expiry date to remind you daily in the last 30 days.
 
+## Privacy
+
+GCI asks once whether you'd like to share **anonymous usage statistics**. Nothing is collected or sent until you
+answer, and you can change your mind anytime under **Settings → Usage statistics** (turning it off discards anything
+not yet sent). **Settings → See exactly what's been sent** opens a local log of every event.
+
+If you opt in, events go to [Aptabase](https://aptabase.com), a privacy-focused analytics service. Aptabase derives
+country and state from the connection and computes an anonymous visitor hash, but doesn't store IP addresses. GCI
+sends:
+
+| Event | What it contains |
+|---|---|
+| `app_started`, `session_ended` | GCI version, Windows version/build, CPU count, RAM, screen size and scaling, language, time zone, dark mode, where the exe lives (a category like "documents", never a path), settings (refresh interval, notifications on/off, whether phone push is set up), counts of watches/stores/feeds, whether a patient profile exists and a card-expiry bucket (e.g. "under 30 days"), install week and launch count |
+| `daily_summary` | Once a day: which stores you monitor (one flag per store), how many watches and what kinds, items in stock by category, refresh counts/timings/failures, alerts sent, news and image-cache counts |
+| `alert_sent`, `product_opened`, `store_menu_opened` | The store, operator, product name, brand, size, price and stock level (all from the stores' public menus) |
+| `watch_saved`, `watch_deleted`, `watch_toggled` | Category, operator, store scope, price/low-stock settings, and **only recognized product terms** from keywords ("crumble", "live rosin", …); anything else you type is counted, never sent. "Watch this product" sends the product's public name |
+| `news_opened`, `news_alert_sent`, `feed_added`/`removed` | The feed name or website host and post title |
+| `tab_viewed`, `filter_used`, `search_used`, `setting_changed`, `tray_action`, `toast_clicked` | Which screen, filter value, or setting (searches are counted; search text is never sent) |
+| `platform_error`, crash reports | The menu platform and an error category; crash reports carry the error type and stack trace with your Windows username, profile path, emails and long numbers removed |
+| `update_*`, `app_upgraded` | Version numbers and whether updating succeeded |
+
+**Never sent:** your patient details (name, date of birth, card number, card dates, caregiver), watch names or any
+free text you type, search text, your ntfy topic, file paths, or anything that identifies you or your PC. Volume is
+capped at 150 events per day per install.
+
 ## Phone notifications (optional)
 
 Install the [ntfy](https://ntfy.sh) app, subscribe to a hard-to-guess topic, and paste its URL (e.g.
@@ -147,7 +172,8 @@ dotnet run --project src/Gci.Cli -- refresh
 
 `%LOCALAPPDATA%\GCI`: `settings.json`, `watches.json`, `state.json` (last menu per store), `changes.json` (history),
 `stores.json`, `feeds.json` (followed feeds, posts, read state), `profile.dat`, `images\` (thumbnail cache +
-`index.json` of versions and product→image links).
+`index.json` of versions and product→image links), `telemetry.json` (unsent events, only if you opted in) and
+`telemetry-log.jsonl` (what was sent).
 
 ### When a menu platform changes
 

@@ -62,7 +62,7 @@ public partial class MainWindow : Window
 
     private void OnItemDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (_vm.SelectedRow is { } row) _vm.OpenUrlCommand.Execute(row.Url ?? row.Store.MenuUrl);
+        if (_vm.SelectedRow is { } row) _vm.OpenProductCommand.Execute(row);
     }
 
     private void OnChangeDoubleClick(object sender, MouseButtonEventArgs e)
@@ -74,7 +74,7 @@ public partial class MainWindow : Window
     {
         // Double-clicking the checkbox column toggles instead of opening the menu.
         if (e.OriginalSource is FrameworkElement { DataContext: StoreRow } fe && fe.TemplatedParent is System.Windows.Controls.CheckBox) return;
-        if (_vm.SelectedStoreRow is { } row) _vm.OpenUrlCommand.Execute(row.Store.MenuUrl);
+        if (_vm.SelectedStoreRow is { } row) _vm.OpenStoreMenuCommand.Execute(row);
     }
 
     private void OnNewsDoubleClick(object sender, MouseButtonEventArgs e)

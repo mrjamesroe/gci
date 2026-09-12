@@ -80,6 +80,20 @@
             </DockPanel>
         </Border>
 
+        <!-- Usage statistics consent (nothing is sent until answered) -->
+        <Border Background="#EEF3FB" BorderBrush="#CFDCF0" BorderThickness="0,0,0,1" Padding="20,10"
+                Visibility="{Binding ShowTelemetryBanner, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="What's collected" Command="{Binding OpenPrivacyCommand}" Margin="8,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="No thanks" Command="{Binding DeclineTelemetryCommand}" />
+                <Button DockPanel.Dock="Right" Content="Share anonymous stats" Style="{StaticResource PrimaryButton}" Command="{Binding AcceptTelemetryCommand}" />
+                <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <Run FontWeight="SemiBold" Text="Help improve GCI?" />
+                    <Run Text="Share anonymous usage statistics: which stores you monitor, which products you open or get alerts for, the kinds of watches you set up, settings, and error reports. Never your patient details, your name, or text you type. You can change this anytime in Settings." />
+                </TextBlock>
+            </DockPanel>
+        </Border>
+
         <!-- Welcome banner (first run) -->
         <Border Background="{StaticResource AccentSoft}" BorderBrush="#CFE3D2" BorderThickness="0,0,0,1" Padding="20,10"
                 Visibility="{Binding ShowWelcome, Converter={StaticResource BoolToVis}}">
@@ -132,7 +146,7 @@
                     <DataGrid x:Name="InventoryGrid" Grid.Row="1" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" MouseDoubleClick="OnItemDoubleClick">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="Open product page" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding SelectedRow.Url}" />
+                                <MenuItem Header="Open product page" Command="{Binding OpenProductCommand}" />
                                 <Separator />
                                 <MenuItem Header="★ Watch this product at this store" Command="{Binding WatchProductHereCommand}" />
                                 <MenuItem Header="★ Watch this product at any store" Command="{Binding WatchProductAnywhereCommand}" />
@@ -606,6 +620,25 @@
                                     Updates come from github.com/mrjamesroe/gci. A download is installed only if it matches the SHA-256 checksum published
                                     with the release; the new version replaces gci.exe in place and restarts.
                                 </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Usage statistics" Style="{StaticResource SectionTitle}" />
+                                <CheckBox Content="Share anonymous usage statistics to help improve GCI" IsChecked="{Binding ShareUsageStats}"
+                                          IsEnabled="{Binding TelemetryAvailable}" />
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,8,0,0">
+                                    Sent to Aptabase, a privacy-focused analytics service: app version and Windows details, settings, which stores you
+                                    monitor, products you open or get alerts for (names and prices from the stores' public menus), the kinds of watches
+                                    you create (recognized product terms like "crumble" only, never your own wording), news posts you open, store errors
+                                    and crash reports. Never your patient details, your name, anything you type, or your ntfy topic. Aptabase records
+                                    country and state from your connection but doesn't store your IP address.
+                                </TextBlock>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Button Content="See exactly what's been sent" Command="{Binding ViewTelemetryLogCommand}" />
+                                    <Button Content="Privacy details" Command="{Binding OpenPrivacyCommand}" />
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 

@@ -19,6 +19,7 @@ public partial class App : Application
     private ThumbnailService? _thumbnails;
     private FeedService? _feeds;
     private UpdateChecker? _updates;
+    private TelemetryClient? _telemetry;
     private TrayIcon? _tray;
     private MainViewModel? _vm;
     private MainWindow? _window;
@@ -53,8 +54,18 @@ public partial class App : Application
 
         DispatcherUnhandledException += (_, args) =>
         {
+            _telemetry?.TrackError(args.Exception, "unhandled");
             MessageBox.Show(args.Exception.Message, "GCI", MessageBoxButton.OK, MessageBoxImage.Warning);
             args.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex) _telemetry?.TrackError(ex, "crash", fatal: args.IsTerminating);
+        };
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            _telemetry?.TrackError(args.Exception, "taskException");
+            args.SetObserved();
         };
 
         // --data <folder> keeps a separate profile (handy for testing); default is %LOCALAPPDATA%\GCI.
@@ -67,7 +78,8 @@ public partial class App : Application
         Thumb.Service = _thumbnails;
         _feeds = new FeedService(data, userAgent: userAgent);
         _updates = new UpdateChecker();
-        _vm = new MainViewModel(data, _inventory, new ProfileStore(data), _notifier, _thumbnails, _feeds, _updates, e.Args);
+        _telemetry = new TelemetryClient(data, TelemetryEnvironment.SystemInfo());
+        _vm = new MainViewModel(data, _inventory, new ProfileStore(data), _notifier, _thumbnails, _feeds, _updates, _telemetry, e.Args);
         _vm.ExitRequested += ExitApp;
         _window = new MainWindow(_vm);
         _window.Closed += (_, _) => ExitApp();
@@ -79,11 +91,12 @@ public partial class App : Application
                 "GCI", _vm.ReleasesPage, null, "What's new");
         }
 
+        void TrayAction(string action) => _vm.TrackEvent("tray_action", new() { ["action"] = action });
         _tray = new TrayIcon(
-            show: ShowWindow,
-            refresh: () => _ = _vm.RefreshAsync(),
-            togglePause: () => { _vm.TogglePauseCommand.Execute(null); _tray!.SetPaused(_vm.IsPaused); },
-            exit: ExitApp);
+            show: () => { TrayAction("open"); ShowWindow(); },
+            refresh: () => { TrayAction("refresh"); _ = _vm.RefreshAsync(); },
+            togglePause: () => { _vm.TogglePauseCommand.Execute(null); _tray!.SetPaused(_vm.IsPaused); TrayAction(_vm.IsPaused ? "pause" : "resume"); },
+            exit: () => { TrayAction("exit"); ExitApp(); });
         _vm.TrayStatusChanged += status => _tray.SetStatus(status);
         _window.HiddenToTray += (_, _) =>
             _tray.ShowBalloon("GCI is still running", "It keeps watching for changes. Right-click the leaf icon to exit.");
@@ -94,14 +107,18 @@ public partial class App : Application
             Dispatcher.BeginInvoke(() =>
             {
                 var action = toastArgs.TryGetValue("action", out var a) ? a : "open";
+                _vm.TrackEvent("toast_clicked", new() { ["action"] = action, ["has_link"] = toastArgs.Contains("url") });
                 if (action == "open" && toastArgs.TryGetValue("url", out var url)) _vm.OpenUrlCommand.Execute(url);
                 else ShowWindow();
             });
         };
 
         var startHidden = e.Args.Contains("--minimized") || _vm.Settings.StartMinimized;
-        if (!startHidden || ToastNotificationManagerCompat.WasCurrentProcessToastActivated())
+        var toastLaunch = ToastNotificationManagerCompat.WasCurrentProcessToastActivated();
+        if (!startHidden || toastLaunch)
             _window.Show();
+        _vm.RecordLaunch(justUpdated ? "updated" : toastLaunch ? "toast" : e.Args.Contains("--minimized") ? "windows_startup"
+            : startHidden ? "minimized" : "normal");
         Dispatcher.BeginInvoke(() => _ = _vm.RefreshAsync(), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
     }
 
@@ -114,6 +131,7 @@ public partial class App : Application
         // Closing the window raises Closed, which calls back in here.
         if (_exiting) return;
         _exiting = true;
+        _vm?.TrackSessionEnded();
         if (_window is { AllowClose: false } w)
         {
             w.AllowClose = true;
@@ -130,6 +148,8 @@ public partial class App : Application
         _feeds = null;
         _updates?.Dispose();
         _updates = null;
+        _telemetry?.Dispose(); // last: flushes pending events
+        _telemetry = null;
         Shutdown();
     }
 
