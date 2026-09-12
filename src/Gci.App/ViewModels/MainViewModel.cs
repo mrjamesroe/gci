@@ -35,7 +35,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private bool _bulkStoreEdit;
 
     public MainViewModel(DataStore data, InventoryService inventory, ProfileStore profiles, Notifier notifier,
-        ThumbnailService thumbnails, FeedService feeds, UpdateChecker updates, IReadOnlyList<string> launchArgs)
+        ThumbnailService thumbnails, FeedService feeds, UpdateChecker updates, TelemetryClient telemetry,
+        IReadOnlyList<string> launchArgs)
     {
         _data = data;
         _inventory = inventory;
@@ -48,7 +49,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         CurrentVersion = _currentVersion.ToString(3);
         Settings = data.Load(SettingsFile, () => new AppSettings());
         _watches = data.Load(WatchesFile, () => new List<WatchRule>());
-        Profile = new ProfileViewModel(profiles);
+        InitTelemetry(telemetry);
+        Profile = new ProfileViewModel(profiles, telemetry);
 
         // Assign backing fields directly so loading doesn't re-save settings through the change hooks.
 #pragma warning disable MVVMTK0034
@@ -111,12 +113,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private int _selectedTabIndex;
     [ObservableProperty] private bool _showWelcome;
 
-    partial void OnSearchTextChanged(string value) => ApplyFilters();
-    partial void OnSelectedCategoryChanged(Option<ProductCategory?> value) => ApplyFilters();
-    partial void OnSelectedOperatorChanged(Option<string?> value) => ApplyFilters();
-    partial void OnSelectedStoreChanged(Option<string?> value) => ApplyFilters();
-    partial void OnInStockOnlyChanged(bool value) => ApplyFilters();
-    partial void OnWatchedOnlyChanged(bool value) => ApplyFilters();
+    partial void OnSearchTextChanged(string value) { ApplyFilters(); TrackSearch(value); }
+    partial void OnSelectedCategoryChanged(Option<ProductCategory?> value) { ApplyFilters(); TrackFilter("category", value?.Value?.ToString()); }
+    partial void OnSelectedOperatorChanged(Option<string?> value) { ApplyFilters(); TrackFilter("operator", value?.Value); }
+    partial void OnSelectedStoreChanged(Option<string?> value)
+    {
+        ApplyFilters();
+        TrackFilter("store", value?.Value is { } key ? _inventory.GetStore(key)?.DisplayName : null);
+    }
+    partial void OnInStockOnlyChanged(bool value) { ApplyFilters(); TrackFilter("in_stock_only", value.ToString()); }
+    partial void OnWatchedOnlyChanged(bool value) { ApplyFilters(); TrackFilter("watched_only", value.ToString()); }
 
     // ---- Status -------------------------------------------------------------------------------
 
@@ -146,6 +152,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     partial void OnSelectedTabIndexChanged(int value)
     {
         if (value == SettingsTab) UpdateImagesStatus();
+        TrackTab(value);
     }
 
     // ---- Settings -----------------------------------------------------------------------------
@@ -161,7 +168,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string _imagesStatusText = "";
     [ObservableProperty] private string _settingsMessage = "";
 
-    partial void OnShowImagesChanged(bool value) { Settings.ShowImages = value; SaveSettings(); }
+    partial void OnShowImagesChanged(bool value) { Settings.ShowImages = value; SaveSettings(); TrackSetting("show_images", value); }
 
     public string DataFolder => _data.Root;
 
@@ -176,18 +183,28 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Settings.RefreshMinutes = Math.Max(AppSettings.MinimumRefreshMinutes, value);
         SaveSettings();
         ScheduleNext();
+        TrackSetting("refresh_minutes", Settings.RefreshMinutes);
     }
 
-    partial void OnAutoRefreshChanged(bool value) { Settings.AutoRefresh = value; SaveSettings(); ScheduleNext(); }
-    partial void OnToastNotificationsChanged(bool value) { Settings.ToastNotifications = value; SaveSettings(); }
-    partial void OnNtfyTopicUrlChanged(string value) { Settings.NtfyTopicUrl = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); SaveSettings(); }
-    partial void OnMinimizeToTrayChanged(bool value) { Settings.MinimizeToTray = value; SaveSettings(); }
-    partial void OnStartMinimizedChanged(bool value) { Settings.StartMinimized = value; SaveSettings(); }
+    partial void OnAutoRefreshChanged(bool value) { Settings.AutoRefresh = value; SaveSettings(); ScheduleNext(); TrackSetting("auto_refresh", value); }
+    partial void OnToastNotificationsChanged(bool value) { Settings.ToastNotifications = value; SaveSettings(); TrackSetting("toasts", value); }
+    partial void OnMinimizeToTrayChanged(bool value) { Settings.MinimizeToTray = value; SaveSettings(); TrackSetting("minimize_to_tray", value); }
+    partial void OnStartMinimizedChanged(bool value) { Settings.StartMinimized = value; SaveSettings(); TrackSetting("start_minimized", value); }
+
+    partial void OnNtfyTopicUrlChanged(string value)
+    {
+        var wasSet = Settings.NtfyTopicUrl is not null;
+        Settings.NtfyTopicUrl = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        SaveSettings();
+        // Only whether phone push is configured, never the topic URL.
+        if (wasSet != (Settings.NtfyTopicUrl is not null)) TrackSetting("ntfy", Settings.NtfyTopicUrl is not null);
+    }
 
     partial void OnStartWithWindowsChanged(bool value)
     {
         Settings.StartWithWindows = value;
         SaveSettings();
+        TrackSetting("start_with_windows", value);
         try
         {
             StartupRegistration.Apply(value);
@@ -224,7 +241,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 StatusText = $"Refreshing… {p.Done}/{p.Total} stores";
             });
             var token = _refreshCts.Token;
+            var stopwatch = Stopwatch.StartNew();
             var result = await Task.Run(() => _inventory.RefreshAsync(keys, token, progress), token);
+            stopwatch.Stop();
 
             RefreshStoreStatuses();
             RebuildAllRows();
@@ -236,7 +255,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 .SelectMany(e => _watches.Where(w => WatchMatcher.Matches(w, e)).Select(w => (e, w)))
                 .ToList();
             await _notifier.NotifyAsync(matches, Settings);
+            TrackRefresh(result, matches, stopwatch.Elapsed);
             await RefreshFeedsAsync();
+            MaybeSendDailySummary();
 
             LastRefreshText = $"Updated {result.FinishedAt.LocalDateTime:t}";
             StatusText = result.StoresFailed == 0
@@ -321,6 +342,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 _notifier.ShowToast($"New store found: {s.DisplayName}",
                     s.IsPharmacyPartner ? "Enable it on the Stores tab to monitor it." : "Now monitoring it.",
                     s.City, s.MenuUrl, null);
+                TrackStoreDiscovered(s);
             }
         }
         Settings.KnownStoreKeys = stores.Select(s => s.Key).ToList();
@@ -465,6 +487,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (row.IsEnabled) keys.Add(row.Store.Key);
         if (_bulkStoreEdit) return;
         AfterStoreSelectionChanged();
+        _telemetry.Track("store_toggled", new Dictionary<string, object?>
+        {
+            ["store"] = row.Store.DisplayName, ["operator"] = row.Store.Operator, ["platform"] = row.Store.Provider.ToString(),
+            ["pharmacy"] = row.Store.IsPharmacyPartner, ["monitored"] = row.IsEnabled, ["stores_monitored"] = EnabledKeys().Count,
+        });
     }
 
     private void AfterStoreSelectionChanged()
@@ -476,17 +503,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _nextRefresh = DateTimeOffset.Now.AddSeconds(3);
     }
 
-    private void SetStores(Func<StoreRow, bool> enable)
+    private void SetStores(string action, Func<StoreRow, bool> enable)
     {
         _bulkStoreEdit = true;
         foreach (var row in StoreRows) row.IsEnabled = enable(row);
         _bulkStoreEdit = false;
         AfterStoreSelectionChanged();
+        _telemetry.Track("stores_bulk_changed", new Dictionary<string, object?> { ["action"] = action, ["stores_monitored"] = EnabledKeys().Count });
     }
 
-    [RelayCommand] private void EnableDispensaries() => SetStores(r => r.IsEnabled || !r.Store.IsPharmacyPartner);
-    [RelayCommand] private void EnableAllStores() => SetStores(_ => true);
-    [RelayCommand] private void DisableAllStores() => SetStores(_ => false);
+    [RelayCommand] private void EnableDispensaries() => SetStores("all_dispensaries", r => r.IsEnabled || !r.Store.IsPharmacyPartner);
+    [RelayCommand] private void EnableAllStores() => SetStores("everything", _ => true);
+    [RelayCommand] private void DisableAllStores() => SetStores("none", _ => false);
 
     [RelayCommand]
     private async Task RediscoverStoresAsync()
@@ -495,6 +523,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         await EnsureStoresAsync(force: true);
         StatusText = $"Found {_inventory.Stores.Count} stores.";
         RebuildAllRows();
+        _telemetry.Track("stores_rediscovered", new Dictionary<string, object?> { ["stores_found"] = _inventory.Stores.Count });
     }
 
     // ---- Watches ------------------------------------------------------------------------------
@@ -503,8 +532,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         WatchRows.Clear();
         foreach (var w in _watches)
-            WatchRows.Add(new WatchRow(w, key => _inventory.GetStore(key)?.DisplayName,
-                _ => { SaveWatches(); RebuildAllRows(); RebuildChanges(); RebuildNews(); }));
+            WatchRows.Add(new WatchRow(w, key => _inventory.GetStore(key)?.DisplayName, row =>
+            {
+                SaveWatches();
+                RebuildAllRows();
+                RebuildChanges();
+                RebuildNews();
+                _telemetry.Track("watch_toggled", new Dictionary<string, object?> { ["enabled"] = row.Enabled, ["watches_total"] = _watches.Count });
+            }));
         UpdateWatchCounts();
     }
 
@@ -515,13 +550,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void AddWatch() => EditAndSave(new WatchRule { Name = "New watch" }, isNew: true);
+    private void AddWatch() => EditAndSave(new WatchRule { Name = "New watch" }, isNew: true, "new");
 
     [RelayCommand]
     private void EditWatch(WatchRow? row)
     {
         row ??= SelectedWatch;
-        if (row is not null) EditAndSave(row.Rule, isNew: false);
+        if (row is not null) EditAndSave(row.Rule, isNew: false, "edit");
     }
 
     [RelayCommand]
@@ -536,6 +571,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         RebuildAllRows();
         RebuildChanges();
         RebuildNews();
+        _telemetry.Track("watch_deleted", new Dictionary<string, object?>
+        {
+            ["category"] = row.Rule.Category?.ToString() ?? "any", ["watches_total"] = _watches.Count,
+        });
     }
 
     [RelayCommand]
@@ -549,7 +588,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             Keywords = { row.Name },
             StoreKeys = { row.Store.Key },
             LowStockThreshold = row.Quantity is not null ? 3 : null,
-        }, isNew: true);
+        }, isNew: true, "product_here");
     }
 
     [RelayCommand]
@@ -557,7 +596,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         row ??= SelectedRow;
         if (row is null) return;
-        EditAndSave(new WatchRule { Name = row.Name, Keywords = { row.Name } }, isNew: true);
+        EditAndSave(new WatchRule { Name = row.Name, Keywords = { row.Name } }, isNew: true, "product_anywhere");
     }
 
     [RelayCommand]
@@ -570,7 +609,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             Name = $"{row.Item.Category} @ {row.Store.Name}",
             Category = row.Item.Category,
             StoreKeys = { row.Store.Key },
-        }, isNew: true);
+        }, isNew: true, "category_store");
     }
 
     [RelayCommand]
@@ -584,10 +623,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         };
         if (SelectedStore?.Value is { } store) rule.StoreKeys.Add(store);
         rule.Name = rule.Summary == "Everything" ? "Everything" : rule.Summary;
-        EditAndSave(rule, isNew: true);
+        EditAndSave(rule, isNew: true, "filters");
     }
 
-    private void EditAndSave(WatchRule rule, bool isNew)
+    private void EditAndSave(WatchRule rule, bool isNew, string source)
     {
         if (ShowWatchEditor is null) return;
         var current = _allRows.Select(r => (r.Item, r.Store)).ToList();
@@ -604,6 +643,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         RebuildChanges();
         RebuildNews();
         StatusText = isNew ? $"Watching \"{updated.Name}\"." : $"Updated \"{updated.Name}\".";
+        TrackWatchSaved(updated, source, isNew);
     }
 
     // ---- Changes ------------------------------------------------------------------------------
@@ -639,10 +679,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             var error = await _notifier.SendNtfyAsync(Settings.NtfyTopicUrl!, "GCI test", "Phone notifications are working.", null);
             SettingsMessage = error is null ? "Sent a test toast and a phone push." : $"Toast sent; phone push failed: {error}";
+            _telemetry.Track("test_notification", new Dictionary<string, object?> { ["ntfy"] = true, ["ntfy_ok"] = error is null });
         }
         else
         {
             SettingsMessage = "Sent a test toast.";
+            _telemetry.Track("test_notification", new Dictionary<string, object?> { ["ntfy"] = false });
         }
     }
 
@@ -666,7 +708,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Raised after a new version has been put in place and started; the app should exit.</summary>
     public event Action? ExitRequested;
 
-    partial void OnCheckForUpdatesChanged(bool value) { Settings.CheckForUpdates = value; SaveSettings(); }
+    partial void OnCheckForUpdatesChanged(bool value) { Settings.CheckForUpdates = value; SaveSettings(); TrackSetting("check_updates", value); }
 
     private async Task CheckForUpdatesAsync(bool manual)
     {
@@ -693,6 +735,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             UpdateBannerText = $"GCI {version} is available. You have {CurrentVersion}.";
             ShowUpdateBanner = true;
             UpdateStatusText = $"Version {version} is available ({latest.PublishedAt?.LocalDateTime:MMM d}).";
+            _telemetry.TrackOnce($"update_available:{latest.Tag}", TimeSpan.FromDays(30), "update_available",
+                new Dictionary<string, object?> { ["available"] = version, ["current"] = CurrentVersion, ["manual_check"] = manual });
             if (Settings.LastAnnouncedVersion != latest.Tag)
             {
                 Settings.LastAnnouncedVersion = latest.Tag;
@@ -722,20 +766,30 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             UpdateStatusText = reason;
             UpdateBannerText = reason;
+            _telemetry.Track("update_blocked", new Dictionary<string, object?>
+            {
+                ["reason"] = reason.Contains("development") ? "dev_build"
+                    : reason.Contains("framework") ? "multi_file_build"
+                    : reason.Contains("write") ? "folder_not_writable" : "other",
+            });
             OpenUrl(release.PageUrl);
             return;
         }
 
         IsInstallingUpdate = true;
         var version = release.Version.ToString(3);
+        var stage = "download";
         try
         {
+            _telemetry.Track("update_install_started", new Dictionary<string, object?> { ["from"] = CurrentVersion, ["to"] = version });
+            await _telemetry.FlushAsync();
             var progress = new Progress<double>(p =>
             {
                 UpdateProgress = p * 100;
                 UpdateBannerText = $"Downloading GCI {version}… {p:P0}";
             });
             var downloaded = await _updates.DownloadAsync(release, _data.PathFor("updates"), progress);
+            stage = "install";
             UpdateBannerText = $"Installing GCI {version} and restarting…";
             UpdateInstaller.InstallAndRestart(downloaded, _launchArgs);
             ExitRequested?.Invoke();
@@ -744,6 +798,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             UpdateBannerText = $"Update failed: {ex.Message}";
             UpdateStatusText = UpdateBannerText;
+            _telemetry.Track("update_failed", new Dictionary<string, object?>
+            {
+                ["from"] = CurrentVersion, ["to"] = version, ["stage"] = stage, ["error"] = ex.GetType().Name,
+            });
         }
         finally
         {
@@ -788,6 +846,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 .Select(x => (x.Post, x.Source!.Name, x.Watch))
                 .ToList();
             await _notifier.NotifyPostsAsync(alerts, Settings);
+            _telemetry.Increment("news_new_posts", fresh.Count);
+            foreach (var (post, source, watch) in alerts)
+                _telemetry.TrackLimited("news_alert_sent", 10, new Dictionary<string, object?>
+                {
+                    ["feed"] = source, ["title"] = post.Title, ["matched_watch"] = watch is not null,
+                    ["tags"] = string.Join(",", post.Categories.Take(3)),
+                });
         }
         catch (Exception ex)
         {
@@ -827,6 +892,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             {
                 _feeds.UpdateSource(row.Source.Id, row.Enabled, row.Notify);
                 RebuildNews();
+                _telemetry.Track("feed_changed", new Dictionary<string, object?>
+                {
+                    ["feed_host"] = new Uri(row.Url).Host, ["followed"] = row.Enabled, ["notify_every_post"] = row.Notify,
+                });
             }));
     }
 
@@ -842,6 +911,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         row ??= SelectedNews;
         if (row is null) return;
+        _telemetry.TrackLimited("news_opened", 30, new Dictionary<string, object?>
+        {
+            ["feed"] = _feeds.Sources.FirstOrDefault(s => s.Id == row.Post.FeedId)?.Name,
+            ["title"] = row.Title,
+            ["was_unread"] = row.IsUnread,
+            ["matched_watch"] = row.IsMatch,
+            ["age_days"] = row.Post.PublishedAt is { } p ? Math.Round((DateTimeOffset.Now - p).TotalDays) : null,
+        });
         _feeds.MarkRead(row.Post);
         row.IsUnread = false;
         UpdateNewsCounts();
@@ -851,6 +928,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void MarkAllNewsRead()
     {
+        _telemetry.Increment("news_mark_all_read");
         _feeds.MarkAllRead();
         RebuildNews();
     }
@@ -866,6 +944,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             RebuildFeedRows();
             await RefreshFeedsAsync();
             if (_feeds.GetStatus(source.Id)?.Error is { } err) FeedMessage = $"Added, but it couldn't be read: {err}";
+            // The feed's host only; a full feed URL can carry personal tokens.
+            _telemetry.Track("feed_added", new Dictionary<string, object?>
+            {
+                ["feed_host"] = new Uri(source.Url).Host, ["readable"] = _feeds.GetStatus(source.Id)?.Error is null,
+                ["feeds_total"] = _feeds.Sources.Count,
+            });
         }
         catch (ArgumentException ex)
         {
@@ -881,6 +965,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _feeds.RemoveSource(row.Source.Id);
         RebuildFeedRows();
         RebuildNews();
+        _telemetry.Track("feed_removed", new Dictionary<string, object?>
+        {
+            ["feed_host"] = new Uri(row.Url).Host, ["default_feed"] = row.Url == FeedService.PeachScoutUrl,
+        });
     }
 
     // ---- Product images -----------------------------------------------------------------------
@@ -910,12 +998,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         ImagesStatusText = "Checking every cached image against its original…";
         await SweepImagesAsync(force: true);
+        var s = _thumbnails.GetStats();
+        _telemetry.Track("images_checked", new Dictionary<string, object?>
+        {
+            ["cached"] = s.Images, ["changed"] = s.Changed, ["removed"] = s.Removed, ["links_changed"] = s.LinksChanged,
+        });
     }
 
     [RelayCommand]
     private void ClearImageCache()
     {
         if (Confirm?.Invoke("Delete all cached product images? They'll download again as you browse.") == false) return;
+        _telemetry.Track("image_cache_cleared", new Dictionary<string, object?> { ["cached"] = _thumbnails.GetStats().Images });
         _thumbnails.Clear();
         RebuildAllRows();
         UpdateImagesStatus();
@@ -936,12 +1030,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ShowWelcome = false;
         Settings.FirstRunComplete = true;
         SaveSettings();
+        _telemetry.Track("welcome_action", new Dictionary<string, object?> { ["action"] = "dismissed" });
     }
 
     [RelayCommand]
     private void GoToTab(string? index)
     {
-        if (int.TryParse(index, out var i)) SelectedTabIndex = i;
+        if (!int.TryParse(index, out var i)) return;
+        SelectedTabIndex = i;
+        _telemetry.Track("welcome_action", new Dictionary<string, object?> { ["action"] = $"go_to_tab_{i}" });
     }
 
     private void SaveSettings() => _data.Save(SettingsFile, Settings);

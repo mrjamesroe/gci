@@ -40,6 +40,9 @@ public sealed class ProviderHttp : IDisposable
         _client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-US");
     }
 
+    /// <summary>Hosts that rejected .NET and are being read through curl.exe.</summary>
+    public IReadOnlyCollection<string> CurlHosts => _curlHosts.Keys.ToList();
+
     public Task<JsonNode> GetJsonAsync(string url, CancellationToken ct, IDictionary<string, string>? headers = null) =>
         SendJsonAsync(HttpMethod.Get, url, null, headers, ct);
 

@@ -18,6 +18,13 @@ public sealed class AppSettings
     public bool StartMinimized { get; set; }
     public bool ShowImages { get; set; } = true;
     public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>Anonymous usage statistics: null = not asked yet (nothing is sent), then the user's choice.</summary>
+    public bool? ShareUsageStats { get; set; }
+    public DateTimeOffset? InstallDate { get; set; }
+    public int LaunchCount { get; set; }
+    public string? LastRunVersion { get; set; }
+    public string? LastSummaryDay { get; set; }
     public DateTimeOffset? LastUpdateCheck { get; set; }
     /// <summary>Newest version already announced, so each release notifies once.</summary>
     public string? LastAnnouncedVersion { get; set; }

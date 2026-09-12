@@ -2,16 +2,19 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gci.App.Services;
 using Gci.Core.Models;
+using Gci.Core.Services;
 
 namespace Gci.App.ViewModels;
 
 public sealed partial class ProfileViewModel : ObservableObject
 {
     private readonly ProfileStore _store;
+    private readonly TelemetryClient _telemetry;
 
-    public ProfileViewModel(ProfileStore store)
+    public ProfileViewModel(ProfileStore store, TelemetryClient telemetry)
     {
         _store = store;
+        _telemetry = telemetry;
         Load(store.Load());
     }
 
@@ -60,11 +63,22 @@ public sealed partial class ProfileViewModel : ObservableObject
     {
         _store.Save(Current);
         SavedMessage = $"Saved (encrypted) at {DateTime.Now:t}";
+        // Which fields are filled in, never their values.
+        var p = Current;
+        _telemetry.Track("patient_profile_saved", new Dictionary<string, object?>
+        {
+            ["name"] = p.FirstName.Length > 0 || p.LastName.Length > 0,
+            ["birth_date"] = p.BirthDate is not null,
+            ["card_number"] = p.RegistryCardNumber.Length > 0,
+            ["card_dates"] = p.CardIssued is not null || p.CardExpires is not null,
+            ["caregiver"] = p.Caregiver is not null,
+        });
     }
 
     [RelayCommand]
     private void Clear()
     {
+        _telemetry.Track("patient_profile_removed");
         _store.Delete();
         Load(new PatientProfile());
         SavedMessage = "Patient details removed from this PC.";
