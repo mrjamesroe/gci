@@ -56,6 +56,8 @@ public static class TelemetryEnvironment
             ["timezone"] = TimeZoneInfo.Local.Id,
             ["high_contrast"] = SystemParameters.HighContrast,
             ["install_location"] = InstallLocation(),
+            // Major version only; "none" means Cloudflare-protected menus can't use the WebView2 fallback.
+            ["webview2"] = BrowserTransport.RuntimeVersion()?.Split('.')[0] ?? "none",
         };
         try
         {

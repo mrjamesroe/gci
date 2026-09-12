@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -10,23 +11,29 @@ namespace Gci.Core.Providers;
 
 /// <summary>
 /// Shared HTTP plumbing: one client, browser-like headers, a single retry on transient failures.
-/// Some hosts (Jane, Dutchie) sit behind Cloudflare bot rules that reject .NET's TLS handshake but
-/// accept Windows' built-in curl.exe; when a host answers 403 with an HTML challenge, it is
-/// remembered and later requests to it go through curl.exe instead.
+/// Some hosts (Jane, Dutchie) sit behind Cloudflare bot rules that fingerprint the TLS handshake and reject .NET's.
+/// When a host answers with a Cloudflare block page, GCI escalates: first Windows' built-in curl.exe (accepted on most
+/// PCs), then a real browser engine (<see cref="Browser"/>, Edge WebView2 in the app). The route that works is
+/// remembered per host.
 /// </summary>
 public sealed class ProviderHttp : IDisposable
 {
+    public const string NoCurlVariable = "GCI_NO_CURL";
+
+    private enum Route { Direct, Curl, Browser }
+
     private static readonly string? CurlPath = FindCurl();
     private readonly HttpClient _client;
     private readonly string _userAgent;
     private readonly bool _allowCurl;
-    private readonly ConcurrentDictionary<string, bool> _curlHosts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, Route> _routes = new(StringComparer.OrdinalIgnoreCase);
 
-    public ProviderHttp(string userAgent, HttpMessageHandler? handler = null)
+    public ProviderHttp(string userAgent, HttpMessageHandler? handler = null, IBrowserTransport? browser = null)
     {
         _userAgent = userAgent;
-        // A test handler means requests must stay in-process.
-        _allowCurl = handler is null && CurlPath is not null;
+        Browser = browser;
+        // A test handler means requests must stay in-process. GCI_NO_CURL=1 simulates a PC where curl is blocked.
+        _allowCurl = handler is null && CurlPath is not null && Environment.GetEnvironmentVariable(NoCurlVariable) != "1";
         _client = new HttpClient(handler ?? new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
@@ -40,8 +47,16 @@ public sealed class ProviderHttp : IDisposable
         _client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-US");
     }
 
+    /// <summary>Last-resort route through a real browser engine; null where none is available (the CLI).</summary>
+    public IBrowserTransport? Browser { get; }
+
     /// <summary>Hosts that rejected .NET and are being read through curl.exe.</summary>
-    public IReadOnlyCollection<string> CurlHosts => _curlHosts.Keys.ToList();
+    public IReadOnlyCollection<string> CurlHosts => HostsOn(Route.Curl);
+
+    /// <summary>Hosts that rejected both .NET and curl and are being read through the browser engine.</summary>
+    public IReadOnlyCollection<string> BrowserHosts => HostsOn(Route.Browser);
+
+    private List<string> HostsOn(Route route) => _routes.Where(r => r.Value == route).Select(r => r.Key).ToList();
 
     public Task<JsonNode> GetJsonAsync(string url, CancellationToken ct, IDictionary<string, string>? headers = null) =>
         SendJsonAsync(HttpMethod.Get, url, null, headers, ct);
@@ -70,7 +85,8 @@ public sealed class ProviderHttp : IDisposable
             {
                 (status, text) = await SendAsync(method, url, json, headers, ct);
             }
-            catch (Exception ex) when (attempt < 2 && !ct.IsCancellationRequested && ex is HttpRequestException or TaskCanceledException or ProviderException)
+            catch (Exception ex) when (attempt < 2 && !ct.IsCancellationRequested && ex is not HostBlockedException
+                                       && ex is HttpRequestException or TaskCanceledException or ProviderException)
             {
                 await Task.Delay(TimeSpan.FromSeconds(3), ct);
                 continue;
@@ -98,9 +114,72 @@ public sealed class ProviderHttp : IDisposable
         IDictionary<string, string>? headers, CancellationToken ct)
     {
         var host = new Uri(url).Host;
-        if (_curlHosts.ContainsKey(host))
-            return await SendViaCurlAsync(method, url, json, headers, ct);
+        var route = _routes.GetValueOrDefault(host, Route.Direct);
 
+        if (route == Route.Direct)
+        {
+            try
+            {
+                var direct = await SendDirectAsync(method, url, json, headers, ct);
+                if (!IsBlocked(direct) || (!_allowCurl && Browser is null)) return direct;
+            }
+            catch (HttpRequestException ex) when (ex.InnerException is AuthenticationException && (_allowCurl || Browser is not null))
+            {
+                // Some bot rules drop the TLS handshake instead of answering; treat it like a block page.
+            }
+            route = Route.Curl;
+        }
+
+        var curlProblem = "was blocked earlier";
+        if (route == Route.Curl)
+        {
+            if (_allowCurl)
+            {
+                try
+                {
+                    var viaCurl = await SendViaCurlAsync(method, url, json, headers, ct);
+                    if (!IsBlocked(viaCurl))
+                    {
+                        _routes[host] = Route.Curl;
+                        return viaCurl;
+                    }
+                    curlProblem = "was blocked too";
+                }
+                catch (Exception ex) when (!ct.IsCancellationRequested && ex is ProviderException or System.ComponentModel.Win32Exception)
+                {
+                    curlProblem = $"failed ({ex.Message})";
+                }
+            }
+            else
+            {
+                curlProblem = CurlPath is null ? "isn't available" : "is turned off";
+            }
+        }
+
+        if (Browser is null)
+            throw new HostBlockedException($"{host} is blocking GCI (Cloudflare bot protection) and Windows' curl {curlProblem}. " +
+                                           "The GCI app can read it through Microsoft Edge WebView2 instead.");
+        try
+        {
+            var viaBrowser = await Browser.SendAsync(method, url, json, headers, ct);
+            if (IsBlocked(viaBrowser))
+                throw new HostBlockedException($"{host} is refusing connections from this PC (Cloudflare bot protection), " +
+                                               "even through Microsoft Edge. A VPN, proxy or network filter is the usual cause; " +
+                                               $"try opening https://{host} in Edge on this PC.");
+            _routes[host] = Route.Browser;
+            return viaBrowser;
+        }
+        catch (BrowserUnavailableException ex)
+        {
+            throw new HostBlockedException($"{host} is blocking GCI (Cloudflare bot protection) and Windows' curl {curlProblem}. " +
+                                           $"GCI reads such menus through Microsoft Edge WebView2, but {ex.Message}. " +
+                                           $"Install the WebView2 Runtime from {BrowserUnavailableException.DownloadUrl}");
+        }
+    }
+
+    private async Task<(int Status, string Body)> SendDirectAsync(HttpMethod method, string url, string? json,
+        IDictionary<string, string>? headers, CancellationToken ct)
+    {
         using var req = new HttpRequestMessage(method, url);
         if (json is not null)
             req.Content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -116,11 +195,6 @@ public sealed class ProviderHttp : IDisposable
 
         using var res = await _client.SendAsync(req, ct);
         var body = await res.Content.ReadAsStringAsync(ct);
-        if (_allowCurl && res.StatusCode == HttpStatusCode.Forbidden && LooksLikeBotChallenge(body))
-        {
-            _curlHosts[host] = true;
-            return await SendViaCurlAsync(method, url, json, headers, ct);
-        }
         return ((int)res.StatusCode, body);
     }
 
@@ -179,6 +253,10 @@ public sealed class ProviderHttp : IDisposable
         return (status, output[..split]);
     }
 
+    /// <summary>A Cloudflare block or challenge page (as opposed to the API's own error response).</summary>
+    public static bool IsBlocked((int Status, string Body) response) =>
+        response.Status is 403 or 429 or 503 && LooksLikeBotChallenge(response.Body);
+
     private static bool LooksLikeBotChallenge(string body) =>
         body.Contains("<html", StringComparison.OrdinalIgnoreCase) ||
         body.Contains("cloudflare", StringComparison.OrdinalIgnoreCase);
@@ -201,4 +279,20 @@ public sealed class ProviderHttp : IDisposable
     public void Dispose() => _client.Dispose();
 }
 
-public sealed class ProviderException(string message) : Exception(message);
+/// <summary>Sends requests through a real browser engine, for hosts whose bot rules reject every other client.</summary>
+public interface IBrowserTransport
+{
+    Task<(int Status, string Body)> SendAsync(HttpMethod method, string url, string? json,
+        IDictionary<string, string>? headers, CancellationToken ct);
+}
+
+/// <summary>The browser engine can't be used on this PC (for example, the WebView2 Runtime isn't installed).</summary>
+public sealed class BrowserUnavailableException(string message) : Exception(message)
+{
+    public const string DownloadUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
+}
+
+public class ProviderException(string message) : Exception(message);
+
+/// <summary>The host's bot protection rejected every route GCI has; retrying right away won't help.</summary>
+public sealed class HostBlockedException(string message) : ProviderException(message);
