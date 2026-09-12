@@ -1,0 +1,56 @@
+{
+  // Georgia menu sources, verified 2026-09-11. Copy to %LOCALAPPDATA%\GCI\providers.json to override.
+  "trulieve": {
+    "enabled": true,
+    "baseUrl": "https://www.trulieve.com",
+    "stateSlug": "georgia",
+    "pageSize": 100,
+    "fallbackStores": [
+      { "id": "marietta", "operator": "Trulieve", "name": "Marietta", "city": "Marietta", "address": "220 Cobb Pkwy N Suite 600", "phone": "678-402-4185" },
+      { "id": "dunwoody_ga", "operator": "Trulieve", "name": "Dunwoody", "city": "Dunwoody", "phone": "(678) 647-9620" },
+      { "id": "macon", "operator": "Trulieve", "name": "Macon", "city": "Macon", "phone": "478-972-0932" },
+      { "id": "newnan", "operator": "Trulieve", "name": "Newnan", "city": "Newnan", "phone": "678-340-5820" },
+      { "id": "pooler", "operator": "Trulieve", "name": "Pooler", "city": "Pooler", "phone": "912-677-3414" },
+      { "id": "evans", "operator": "Trulieve", "name": "Evans", "city": "Evans", "phone": "706-840-9449" },
+      { "id": "columbus", "operator": "Trulieve", "name": "Columbus", "city": "Columbus", "phone": "706-887-0609" }
+    ]
+  },
+  "mosaic": {
+    "enabled": true,
+    "operator": "Botanical Sciences",
+    "apiBase": "https://api.mosaic.green/v1.0",
+    "shopBase": "https://shop.botanicalsciences.com",
+    "companyId": "37f7f2f4-29cd-47f8-b5ae-c1649011a660"
+  },
+  "jane": {
+    "enabled": true,
+    "algoliaAppId": "VFM4X0N23A",
+    "algoliaApiKey": "edc5435c65d771cecbd98bbd488aa8d3",
+    "algoliaIndex": "menu-products-production",
+    "storeApi": "https://api.iheartjane.com/v1/stores",
+    "stores": [
+      { "id": "6118", "operator": "Fine Fettle", "name": "Smyrna", "city": "Smyrna" },
+      { "id": "6135", "operator": "Fine Fettle", "name": "Decatur", "city": "Decatur" },
+      { "id": "6136", "operator": "Fine Fettle", "name": "Athens", "city": "Athens" },
+      { "id": "7162", "operator": "Fine Fettle", "name": "Evans", "city": "Evans" }
+    ]
+  },
+  "dutchie": {
+    "enabled": true,
+    "graphqlUrl": "https://dutchie.com/api-2/graphql",
+    "dispensaryGraphqlUrl": "https://dutchie.com/graphql",
+    "consumerDispensariesHash": "3ab100feea4c18eccc7a6051c9ad0b852ec5dc7c7837e1dc399e7508022173d8",
+    "filteredProductsHash": "3307e40a53bfb0b59896e267e3a46c2e99da18d3b376567d23267b6483bc3a76",
+    "stores": [
+      { "id": "true-bliss-peach", "internalId": "68ee86bcfd80888bcc1fa3d3", "operator": "True Bliss", "name": "Downtown", "city": "Atlanta", "address": "66 Peachtree St NW", "phone": "(470) 851-1356" },
+      { "id": "true-bliss-dispensary-peachtree", "internalId": "69ea3bf45412b52a70dad7bd", "operator": "True Bliss", "name": "Buckhead", "city": "Atlanta", "address": "1831 Peachtree Rd NE" }
+    ]
+  },
+  "sweed": {
+    "enabled": true,
+    "apiBase": "https://web-ui-prime.sweedpos.com/_api/proxy",
+    "stores": [
+      { "id": "863", "operator": "Treevana Remedy", "name": "Milledgeville", "city": "Milledgeville", "shopUrl": "https://treevanaremedy.com/shop" }
+    ]
+  }
+}

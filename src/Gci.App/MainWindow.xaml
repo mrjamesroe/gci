@@ -1,0 +1,639 @@
+<Window x:Class="Gci.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Gci.App.ViewModels"
+        xmlns:views="clr-namespace:Gci.App.Views"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+        Style="{StaticResource {x:Type Window}}"
+        Title="GCI — Georgia Cannabis Inventory"
+        Icon="Assets/gci.ico"
+        Width="1320" Height="820" MinWidth="960" MinHeight="560"
+        WindowStartupLocation="CenterScreen">
+    <Window.InputBindings>
+        <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
+    </Window.InputBindings>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource AccentDark}" Padding="20,12">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="Assets/gci.ico" Width="34" Height="34" Margin="0,0,12,0" />
+                    <StackPanel>
+                        <TextBlock Text="GCI" Foreground="White" FontSize="20" FontWeight="Bold" />
+                        <TextBlock Text="Georgia Cannabis Inventory" Foreground="#A9C7B6" FontSize="12" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Profile.Greeting}" Foreground="#DDEBE2" FontSize="13" Margin="24,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding LastRefreshText}" Foreground="White" HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding NextRefreshText}" Foreground="#A9C7B6" FontSize="12" HorizontalAlignment="Right" />
+                    </StackPanel>
+                    <Button Style="{StaticResource HeaderButton}" Command="{Binding TogglePauseCommand}" ToolTip="Pause or resume automatic refresh">
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="⏸ Pause" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                            <Setter Property="Text" Value="▶ Resume" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
+                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding RefreshCommand}" ToolTip="Refresh all monitored stores (F5)" Margin="0">
+                        <TextBlock Text="⟳  Refresh now" />
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <StackPanel Grid.Row="1">
+        <!-- Update banner -->
+        <Border Background="#FFF6DD" BorderBrush="#F0DDA6" BorderThickness="0,0,0,1" Padding="20,10"
+                Visibility="{Binding ShowUpdateBanner, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Later" Command="{Binding DismissUpdateCommand}" Margin="8,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="What's new" Command="{Binding ViewReleaseNotesCommand}" />
+                <Button DockPanel.Dock="Right" Content="Install update" Style="{StaticResource PrimaryButton}" Command="{Binding InstallUpdateCommand}"
+                        IsEnabled="{Binding IsInstallingUpdate, Converter={x:Static vm:InverseBoolConverter.Instance}}" />
+                <ProgressBar DockPanel.Dock="Right" Width="140" Height="6" Margin="0,0,12,0" Value="{Binding UpdateProgress}"
+                             Foreground="{StaticResource Accent}" Visibility="{Binding IsInstallingUpdate, Converter={StaticResource BoolToVis}}" />
+                <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0">
+                    <Run Text="⬆" />
+                    <Run Text="{Binding UpdateBannerText, Mode=OneWay}" FontWeight="SemiBold" />
+                    <Run Text="Your watches, settings and history carry over." Foreground="#66706A" />
+                </TextBlock>
+            </DockPanel>
+        </Border>
+
+        <!-- Welcome banner (first run) -->
+        <Border Background="{StaticResource AccentSoft}" BorderBrush="#CFE3D2" BorderThickness="0,0,0,1" Padding="20,10"
+                Visibility="{Binding ShowWelcome, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Got it" Command="{Binding DismissWelcomeCommand}" Margin="8,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="Add patient details" Command="{Binding GoToTabCommand}" CommandParameter="5" />
+                <Button DockPanel.Dock="Right" Content="Choose stores" Command="{Binding GoToTabCommand}" CommandParameter="4" />
+                <Button DockPanel.Dock="Right" Content="Create a watch" Style="{StaticResource PrimaryButton}" Command="{Binding AddWatchCommand}" />
+                <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <Run FontWeight="SemiBold" Text="Welcome to GCI." />
+                    <Run Text="It reads the public online menus of every Georgia medical dispensary it can find and alerts you when watched products appear, restock, sell out, or drop in price. Botanical Sciences partner pharmacies are off by default except Lotus Farmacy." />
+                </TextBlock>
+            </DockPanel>
+        </Border>
+        </StackPanel>
+
+        <TabControl Grid.Row="2" Margin="16,8,16,0" SelectedIndex="{Binding SelectedTabIndex}">
+
+            <!-- ============================== Inventory ============================== -->
+            <TabItem Header="Inventory">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource CardBorder}" Padding="12" Margin="0,0,0,10">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ResultSummary}" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <Button Content="Clear" Command="{Binding ClearFiltersCommand}" />
+                                <Button Content="★ Watch these filters" Command="{Binding WatchCurrentFiltersCommand}" Margin="0"
+                                        ToolTip="Create a watch from the current search and filters" />
+                            </StackPanel>
+                            <WrapPanel VerticalAlignment="Center">
+                                <Grid Width="260" Margin="0,0,8,0">
+                                    <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=150}" />
+                                    <TextBlock Text="Search products, brands, stores…" Style="{StaticResource Muted}" IsHitTestVisible="False"
+                                               Margin="9,0,0,0" VerticalAlignment="Center"
+                                               Visibility="{Binding Text, ElementName=SearchBox, Converter={x:Static vm:EmptyToVisibleConverter.Instance}}" />
+                                </Grid>
+                                <ComboBox ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory}" />
+                                <ComboBox ItemsSource="{Binding OperatorOptions}" SelectedItem="{Binding SelectedOperator}" />
+                                <ComboBox ItemsSource="{Binding StoreOptions}" SelectedItem="{Binding SelectedStore}" MinWidth="220" />
+                                <CheckBox Content="In stock only" IsChecked="{Binding InStockOnly}" />
+                                <CheckBox Content="★ Watched only" IsChecked="{Binding WatchedOnly}" />
+                            </WrapPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <DataGrid x:Name="InventoryGrid" Grid.Row="1" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" MouseDoubleClick="OnItemDoubleClick">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Open product page" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding SelectedRow.Url}" />
+                                <Separator />
+                                <MenuItem Header="★ Watch this product at this store" Command="{Binding WatchProductHereCommand}" />
+                                <MenuItem Header="★ Watch this product at any store" Command="{Binding WatchProductAnywhereCommand}" />
+                                <MenuItem Header="★ Watch this category at this store" Command="{Binding WatchCategoryAtStoreCommand}" />
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="ToolTip" Value="Double-click to open the product page · right-click to watch" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding InStock}" Value="False">
+                                        <Setter Property="Foreground" Value="#9AA39D" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="" Binding="{Binding WatchMark}" Width="26" SortMemberPath="Watched">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Star}" /></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn x:Name="ImageColumn" Header="" Width="56" CanUserSort="False" CanUserResize="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Width="42" Height="42" CornerRadius="4" Background="White" BorderBrush="#E6E9E3" BorderThickness="1"
+                                                ToolTipService.InitialShowDelay="250" ToolTipService.ShowDuration="20000">
+                                            <Border.ToolTip>
+                                                <ToolTip Padding="8" Background="White" BorderBrush="#D9DDD5">
+                                                    <StackPanel Width="240">
+                                                        <Grid Height="240">
+                                                            <TextBlock Text="Loading image…" Foreground="#8A928D" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                            <Image views:Thumb.Size="320" views:Thumb.Image="{Binding Image}" Stretch="Uniform"
+                                                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                                        </Grid>
+                                                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                                        <TextBlock Text="{Binding StoreName}" Foreground="#66706A" />
+                                                    </StackPanel>
+                                                </ToolTip>
+                                            </Border.ToolTip>
+                                            <Grid>
+                                                <TextBlock Text="🌿" Opacity="0.3" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Image views:Thumb.Size="84" views:Thumb.Image="{Binding Image}" Stretch="Uniform" Margin="1"
+                                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="100" />
+                            <DataGridTextColumn Header="Product" Binding="{Binding Name}" Width="3*">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="TextTrimming" Value="CharacterEllipsis" /></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Brand" Binding="{Binding Brand}" Width="1.2*" />
+                            <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="70" />
+                            <DataGridTextColumn Header="Price" Binding="{Binding PriceText}" SortMemberPath="Price" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding OnSale}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Qty" Binding="{Binding QuantityText}" SortMemberPath="Quantity" Width="55" />
+                            <DataGridTextColumn Header="Potency" Binding="{Binding Potency}" Width="1.1*" />
+                            <DataGridTextColumn Header="Type" Binding="{Binding Strain}" Width="75" />
+                            <DataGridTextColumn Header="Store" Binding="{Binding StoreName}" Width="1.6*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============================== Watches ============================== -->
+            <TabItem Header="Watches">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <DockPanel Margin="0,0,0,10">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Content="＋ New watch" Style="{StaticResource PrimaryButton}" Command="{Binding AddWatchCommand}" />
+                            <Button Content="Edit" Command="{Binding EditWatchCommand}" CommandParameter="{Binding SelectedWatch}" />
+                            <Button Content="Delete" Command="{Binding DeleteWatchCommand}" CommandParameter="{Binding SelectedWatch}" Margin="0" />
+                        </StackPanel>
+                        <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" VerticalAlignment="Center">
+                            Watches decide what you're notified about. Match by keywords (e.g. "crumble, live rosin, badder"), category, operator, store, or max price.
+                            Tip: right-click any product on the Inventory tab to watch it.
+                        </TextBlock>
+                    </DockPanel>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding WatchRows}" SelectedItem="{Binding SelectedWatch}" IsReadOnly="False"
+                              CanUserAddRows="False" CanUserDeleteRows="False" MouseDoubleClick="OnWatchDoubleClick">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="On" Width="46">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" Margin="0" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="1.4*" IsReadOnly="True" FontWeight="SemiBold" />
+                            <DataGridTextColumn Header="Matches" Binding="{Binding Summary}" Width="2*" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Notify on" Binding="{Binding EventsText}" Width="1.4*" IsReadOnly="True" />
+                            <DataGridTextColumn Header="In stock now" Binding="{Binding MatchingNow}" Width="100" IsReadOnly="True" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource Muted}" FontSize="14"
+                               Text="No watches yet. Create one to get notified about drops and restocks."
+                               Visibility="{Binding WatchRows.Count, Converter={x:Static vm:ZeroToVisibleConverter.Instance}}" />
+                </Grid>
+            </TabItem>
+
+            <!-- ============================== Changes ============================== -->
+            <TabItem Header="Changes">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <DockPanel Margin="0,0,0,10">
+                        <Button DockPanel.Dock="Right" Content="Clear history" Command="{Binding ClearChangesCommand}" Margin="0" />
+                        <CheckBox DockPanel.Dock="Left" Content="★ Watched only" IsChecked="{Binding ChangesWatchedOnly}" />
+                        <TextBlock Text="{Binding ChangesSummary}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding ChangeRows}" SelectedItem="{Binding SelectedChange}" MouseDoubleClick="OnChangeDoubleClick">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Kind}" Value="Sold out">
+                                        <Setter Property="Foreground" Value="#8A928D" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="" Binding="{Binding WatchMark}" Width="26">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Star}" /></Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="When" Binding="{Binding When}" SortMemberPath="At" Width="120" />
+                            <DataGridTextColumn Header="Change" Binding="{Binding Kind}" Width="110" FontWeight="SemiBold" />
+                            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="95" />
+                            <DataGridTextColumn Header="Product" Binding="{Binding Name}" Width="2.4*" />
+                            <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="65" />
+                            <DataGridTextColumn Header="Price" Binding="{Binding PriceText}" Width="100" />
+                            <DataGridTextColumn Header="Qty" Binding="{Binding QuantityText}" Width="80" />
+                            <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="1.2*" />
+                            <DataGridTextColumn Header="Store" Binding="{Binding StoreName}" Width="1.6*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============================== News ============================== -->
+            <TabItem Header="{Binding NewsHeader}">
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="330" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Margin="0,0,0,10">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Content="Refresh feeds" Command="{Binding RefreshNewsCommand}" />
+                            <Button Content="Mark all read" Command="{Binding MarkAllNewsReadCommand}" Margin="0" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding NewsSummary}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                    </DockPanel>
+
+                    <ListBox Grid.Row="1" ItemsSource="{Binding NewsRows}" SelectedItem="{Binding SelectedNews}"
+                             BorderThickness="0" Background="Transparent" HorizontalContentAlignment="Stretch"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.ScrollUnit="Pixel"
+                             MouseDoubleClick="OnNewsDoubleClick">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Margin" Value="0,0,6,8" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <ContentPresenter />
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="White" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="12"
+                                        ToolTip="Double-click to read the post">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="4" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="128" />
+                                            <ColumnDefinition Width="14" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" CornerRadius="2" Background="{StaticResource Accent}"
+                                                Visibility="{Binding IsUnread, Converter={StaticResource BoolToVis}}" />
+                                        <Border Grid.Column="2" Height="96" CornerRadius="6" Background="#F0F2EE" VerticalAlignment="Top" ClipToBounds="True">
+                                            <Grid>
+                                                <TextBlock Text="🍑" Opacity="0.35" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Image views:Thumb.Size="256" views:Thumb.Image="{Binding Image}" Stretch="UniformToFill"
+                                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                            </Grid>
+                                        </Border>
+                                        <StackPanel Grid.Column="4">
+                                            <WrapPanel>
+                                                <Border Background="{StaticResource Accent}" CornerRadius="3" Padding="6,1" Margin="0,0,6,4"
+                                                        Visibility="{Binding IsUnread, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="NEW" Foreground="White" FontSize="11" FontWeight="Bold" />
+                                                </Border>
+                                                <Border Background="#FFF4D6" CornerRadius="3" Padding="6,1" Margin="0,0,6,4"
+                                                        Visibility="{Binding IsMatch, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="{Binding MatchText}" Foreground="#8A6100" FontSize="11" FontWeight="SemiBold" />
+                                                </Border>
+                                            </WrapPanel>
+                                            <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding Meta}" Style="{StaticResource Muted}" FontSize="12" Margin="0,2,0,6" />
+                                            <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" TextTrimming="WordEllipsis" MaxHeight="56" Foreground="#3B443F" />
+                                            <Button Content="Read post →" Style="{StaticResource LinkButton}" HorizontalAlignment="Left" Margin="0,6,0,0"
+                                                    Command="{Binding DataContext.OpenPostCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource Muted}" FontSize="14"
+                               Text="No posts yet. Feeds are checked with every refresh."
+                               Visibility="{Binding NewsRows.Count, Converter={x:Static vm:ZeroToVisibleConverter.Instance}}" />
+
+                    <Border Grid.Column="2" Grid.RowSpan="2" Style="{StaticResource CardBorder}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="Feeds" Style="{StaticResource SectionTitle}" />
+                            <ItemsControl ItemsSource="{Binding FeedRows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,14">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Url}" Style="{StaticResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding Url}" />
+                                            <TextBlock Text="{Binding StatusText}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,4">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasError}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource Danger}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <WrapPanel>
+                                                <CheckBox Content="Follow" IsChecked="{Binding Enabled}" />
+                                                <CheckBox Content="Notify on every post" IsChecked="{Binding Notify}" />
+                                                <Button Content="Remove" Style="{StaticResource LinkButton}" VerticalAlignment="Center"
+                                                        Command="{Binding DataContext.RemoveFeedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}" />
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="Follow another RSS or Atom feed" Style="{StaticResource FieldLabel}" Margin="0,4,0,4" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Add" Command="{Binding AddFeedCommand}" Margin="6,0,0,0" />
+                                <TextBox Text="{Binding NewFeedUrl, UpdateSourceTrigger=PropertyChanged}" />
+                            </DockPanel>
+                            <TextBlock Text="{Binding FeedMessage}" Foreground="{StaticResource Danger}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                            <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0">
+                                Feeds are checked with every refresh. Posts that mention one of your watch keywords get a ★ and always notify,
+                                even with "Notify on every post" off.
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ============================== Stores ============================== -->
+            <TabItem Header="Stores">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <DockPanel Margin="0,0,0,10">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Content="Monitor all dispensaries" Command="{Binding EnableDispensariesCommand}" />
+                            <Button Content="Monitor everything" Command="{Binding EnableAllStoresCommand}" />
+                            <Button Content="Monitor none" Command="{Binding DisableAllStoresCommand}" />
+                            <Button Content="Find new stores" Command="{Binding RediscoverStoresCommand}" Margin="0" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding StoresSummary}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding StoreRows}" SelectedItem="{Binding SelectedStoreRow}" IsReadOnly="False"
+                              CanUserAddRows="False" CanUserDeleteRows="False" MouseDoubleClick="OnStoreDoubleClick">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Monitor" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsEnabled, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" Margin="0" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Operator" Binding="{Binding Operator}" Width="140" IsReadOnly="True" FontWeight="SemiBold" />
+                            <DataGridTextColumn Header="Store" Binding="{Binding Name}" Width="1.6*" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Type" Binding="{Binding Kind}" Width="135" IsReadOnly="True" />
+                            <DataGridTextColumn Header="City" Binding="{Binding City}" Width="120" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="120" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="2*" IsReadOnly="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                        <Setter Property="ToolTip" Value="{Binding StatusText}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Error, Converter={x:Static vm:IsNotNullConverter.Instance}}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource Danger}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Menu platform" Binding="{Binding Platform}" Width="110" IsReadOnly="True" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============================== Patient ============================== -->
+            <TabItem Header="Patient">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,0,16" MaxWidth="760" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource CardBorder}" DataContext="{Binding Profile}">
+                            <StackPanel>
+                                <TextBlock Text="Patient details" Style="{StaticResource SectionTitle}" />
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}">
+                                    Optional. Georgia dispensary menus are public, so GCI doesn't need these to show inventory and never sends them anywhere.
+                                    They're kept encrypted on this PC (Windows DPAPI, your account only) so you have your card details handy when ordering,
+                                    and so GCI can remind you before your Low THC Oil Registry card expires.
+                                </TextBlock>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="16" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="First name" Style="{StaticResource FieldLabel}" />
+                                        <TextBox Text="{Binding FirstName, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Text="Date of birth" Style="{StaticResource FieldLabel}" />
+                                        <DatePicker SelectedDate="{Binding BirthDate}" />
+                                        <TextBlock Text="Card issued" Style="{StaticResource FieldLabel}" />
+                                        <DatePicker SelectedDate="{Binding CardIssued}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Last name" Style="{StaticResource FieldLabel}" />
+                                        <TextBox Text="{Binding LastName, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Text="Registry card number" Style="{StaticResource FieldLabel}" />
+                                        <TextBox Text="{Binding RegistryCardNumber, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Text="Card expires" Style="{StaticResource FieldLabel}" />
+                                        <DatePicker SelectedDate="{Binding CardExpires}" />
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Text="Caregiver (if someone purchases on your behalf)" Style="{StaticResource FieldLabel}" />
+                                <TextBox Text="{Binding Caregiver, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Text="{Binding CardStatus}" Foreground="{StaticResource Warn}" Margin="0,12,0,0" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                    <Button Content="Save" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" />
+                                    <Button Content="Remove from this PC" Command="{Binding ClearCommand}" />
+                                    <TextBlock Text="{Binding SavedMessage}" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ============================== Settings ============================== -->
+            <TabItem Header="Settings">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,0,16" MaxWidth="760" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Automatic refresh" Style="{StaticResource SectionTitle}" />
+                                <CheckBox Content="Refresh automatically" IsChecked="{Binding AutoRefresh}" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBlock Text="Every" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <ComboBox ItemsSource="{Binding RefreshOptions}" SelectedValue="{Binding RefreshMinutes}"
+                                              SelectedValuePath="Value" DisplayMemberPath="Label" MinWidth="120" />
+                                </StackPanel>
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,8,0,0">
+                                    Each refresh makes a few requests per monitored store. 10–15 minutes catches drops quickly without hammering anyone's servers.
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Notifications" Style="{StaticResource SectionTitle}" />
+                                <CheckBox Content="Windows notifications for watched changes" IsChecked="{Binding ToastNotifications}" />
+                                <TextBlock Text="Phone push via ntfy (optional)" Style="{StaticResource FieldLabel}" />
+                                <TextBox Text="{Binding NtfyTopicUrl, UpdateSourceTrigger=LostFocus}" />
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,6,0,0">
+                                    Install the free ntfy app, subscribe to a hard-to-guess topic, and paste its URL here, e.g. https://ntfy.sh/gci-yourname-4821.
+                                    Anyone who knows the topic can read it, so only product names and stores are sent, never patient details.
+                                </TextBlock>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Button Content="Send test notification" Command="{Binding TestNotificationCommand}" />
+                                    <TextBlock Text="{Binding SettingsMessage}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Product images" Style="{StaticResource SectionTitle}" />
+                                <CheckBox Content="Show product thumbnails in Inventory" IsChecked="{Binding ShowImages}" Margin="0,0,0,8" />
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}">
+                                    Thumbnails download as you scroll and are cached on this PC. Every 12 hours each one is re-checked against the
+                                    store's original image (a cheap "has this changed?" request): a new picture replaces the thumbnail, a removed
+                                    picture is dropped, and when a store points a product at a different image link, the new one is fetched.
+                                    Error pages never replace a good thumbnail.
+                                </TextBlock>
+                                <TextBlock Text="{Binding ImagesStatusText}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Button Content="Check all images now" Command="{Binding CheckImagesCommand}" />
+                                    <Button Content="Clear image cache" Command="{Binding ClearImageCacheCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Window" Style="{StaticResource SectionTitle}" />
+                                <CheckBox Content="Closing the window keeps GCI running in the notification area" IsChecked="{Binding MinimizeToTray}" Margin="0,0,0,8" />
+                                <CheckBox Content="Start GCI when I sign in to Windows" IsChecked="{Binding StartWithWindows}" Margin="0,0,0,8" />
+                                <CheckBox Content="Start minimized to the notification area" IsChecked="{Binding StartMinimized}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Updates" Style="{StaticResource SectionTitle}" />
+                                <TextBlock>
+                                    <Run Text="You have GCI" />
+                                    <Run Text="{Binding CurrentVersion, Mode=OneWay}" FontWeight="SemiBold" />
+                                </TextBlock>
+                                <CheckBox Content="Check GitHub for new versions automatically (at startup and daily)" IsChecked="{Binding CheckForUpdates}" Margin="0,8,0,0" />
+                                <TextBlock Text="{Binding UpdateStatusText}" TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,8,0,0" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Button Content="Check now" Command="{Binding CheckForUpdatesNowCommand}" />
+                                    <Button Content="Install update" Style="{StaticResource PrimaryButton}" Command="{Binding InstallUpdateCommand}"
+                                            Visibility="{Binding AvailableUpdate, Converter={x:Static vm:NotNullToVisibleConverter.Instance}}" />
+                                    <Button Content="All releases" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding ReleasesPage}" />
+                                </StackPanel>
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" FontSize="12" Margin="0,10,0,0">
+                                    Updates come from github.com/mrjamesroe/gci. A download is installed only if it matches the SHA-256 checksum published
+                                    with the release; the new version replaces gci.exe in place and restarts.
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}">
+                            <StackPanel>
+                                <TextBlock Text="Data" Style="{StaticResource SectionTitle}" />
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}">
+                                    Settings, watches, the change history and cached menus are stored here. Drop a providers.json in this folder to override
+                                    menu endpoints or add stores without a rebuild (see README).
+                                </TextBlock>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBlock Text="{Binding DataFolder}" VerticalAlignment="Center" Margin="0,0,12,0" FontFamily="Consolas" />
+                                    <Button Content="Open folder" Command="{Binding OpenDataFolderCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Status bar -->
+        <Border Grid.Row="3" Background="{StaticResource Card}" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="16,6" Margin="0,10,0,0">
+            <DockPanel>
+                <ProgressBar DockPanel.Dock="Right" Width="180" Height="6" Value="{Binding Progress}" Foreground="{StaticResource Accent}"
+                             Visibility="{Binding IsRefreshing, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Text="{Binding StatusText}" Style="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>
