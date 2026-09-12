@@ -80,6 +80,19 @@
             </DockPanel>
         </Border>
 
+        <!-- Phone alerts reminder -->
+        <Border Background="#FFF6DD" BorderBrush="#F0DDA6" BorderThickness="0,0,0,1" Padding="20,10"
+                Visibility="{Binding ShowPhoneNudge, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Not now" Command="{Binding DismissPhoneNudgeCommand}" Margin="8,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="Set up phone alerts" Style="{StaticResource PrimaryButton}" Command="{Binding OpenPhoneSetupCommand}" />
+                <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <Run FontWeight="SemiBold" Text="Get your watch alerts on your phone." />
+                    <Run Text="Drops can sell out overnight while you're away from this PC. Phone alerts take about two minutes to set up and include an Order now button." />
+                </TextBlock>
+            </DockPanel>
+        </Border>
+
         <!-- Usage statistics consent (nothing is sent until answered) -->
         <Border Background="#EEF3FB" BorderBrush="#CFDCF0" BorderThickness="0,0,0,1" Padding="20,10"
                 Visibility="{Binding ShowTelemetryBanner, Converter={StaticResource BoolToVis}}">
@@ -562,7 +575,11 @@
                                 <TextBlock Text="Notifications" Style="{StaticResource SectionTitle}" />
                                 <CheckBox Content="Windows notifications for watched changes" IsChecked="{Binding ToastNotifications}" />
                                 <TextBlock Text="Phone push via ntfy (optional)" Style="{StaticResource FieldLabel}" />
-                                <TextBox Text="{Binding NtfyTopicUrl, UpdateSourceTrigger=LostFocus}" />
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Set up phone alerts…" Style="{StaticResource PrimaryButton}"
+                                            Command="{Binding OpenPhoneSetupCommand}" Margin="8,0,0,0" />
+                                    <TextBox Text="{Binding NtfyTopicUrl, UpdateSourceTrigger=LostFocus}" />
+                                </DockPanel>
                                 <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,6,0,0">
                                     Install the free ntfy app, subscribe to a hard-to-guess topic, and paste its URL here, e.g. https://ntfy.sh/gci-yourname-4821.
                                     Anyone who knows the topic can read it, so only product names and stores are sent, never patient details.

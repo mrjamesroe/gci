@@ -53,6 +53,6 @@ public class TrulieveMappingTests
         Assert.Equal(44, item.SalePrice);
         Assert.Equal("THC 78–84%", item.Potency);
         Assert.Equal(new[] { "0008919895", "0008957623" }, item.Batches!.Keys.Order());
-        Assert.Equal("https://www.trulieve.com/product/momenta-rso-syringe-126710", item.Url);
+        Assert.Equal("https://www.trulieve.com/product/momenta-rso-syringe-126710?store=marietta&state=georgia", item.Url);
     }
 }

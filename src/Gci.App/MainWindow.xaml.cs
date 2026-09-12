@@ -17,6 +17,7 @@ public partial class MainWindow : Window
         _vm = vm;
         DataContext = vm;
         vm.ShowWatchEditor = editor => new WatchEditorWindow(editor) { Owner = this }.ShowDialog() == true;
+        vm.ShowPhoneSetup = setup => new PhoneSetupWindow(setup) { Owner = this }.ShowDialog();
         vm.Confirm = message => MessageBox.Show(this, message, "GCI", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
         ApplyImageSetting();
         vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(MainViewModel.ShowImages)) ApplyImageSetting(); };

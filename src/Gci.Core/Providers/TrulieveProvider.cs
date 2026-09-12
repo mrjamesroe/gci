@@ -175,7 +175,11 @@ public sealed partial class TrulieveProvider(ProviderHttp http, TrulieveConfig c
             InStock = inStock,
             Potency = potency,
             Batches = batches,
-            Url = p.Str("url_key") is { } key ? $"{config.BaseUrl}/product/{key}" : store.MenuUrl,
+            // ?store=&state= makes trulieve.com select this store (it stores the choice and strips the params),
+            // so a phone that has never visited opens the right store's page instead of a default one.
+            Url = p.Str("url_key") is { } key
+                ? $"{config.BaseUrl}/product/{key}?store={Uri.EscapeDataString(store.ProviderStoreId)}&state={config.StateSlug}"
+                : store.MenuUrl,
             ImageUrl = p["small_image"].Str("url"),
         };
     }
