@@ -80,6 +80,19 @@
             </DockPanel>
         </Border>
 
+        <!-- Edge WebView2 missing, and a monitored store needs it -->
+        <Border Background="#FDECEA" BorderBrush="#F2C4BE" BorderThickness="0,0,0,1" Padding="20,10"
+                Visibility="{Binding ShowWebView2Banner, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="I've installed it" Command="{Binding RecheckWebView2Command}" Margin="8,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="Download WebView2" Style="{StaticResource PrimaryButton}" Command="{Binding DownloadWebView2Command}" />
+                <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <Run FontWeight="SemiBold" Text="{Binding WebView2BannerText, Mode=OneWay}" />
+                    <Run Text="It's Microsoft's free component (the engine behind Edge) that GCI uses to read menus protected by Cloudflare. The download is a small installer from Microsoft; run it, then click I've installed it." />
+                </TextBlock>
+            </DockPanel>
+        </Border>
+
         <!-- Phone alerts reminder -->
         <Border Background="#FFF6DD" BorderBrush="#F0DDA6" BorderThickness="0,0,0,1" Padding="20,10"
                 Visibility="{Binding ShowPhoneNudge, Converter={StaticResource BoolToVis}}">
