@@ -32,6 +32,7 @@ public sealed class InventoryService : IDisposable
 
     private readonly DataStore _data;
     private readonly ProviderHttp _http;
+    private readonly BatchSampleWriter _batchSample;
     private readonly Dictionary<ProviderKind, IInventoryProvider> _providers;
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private readonly object _lock = new();
@@ -46,10 +47,11 @@ public sealed class InventoryService : IDisposable
         _data = data;
         config ??= ProviderConfig.Load(data.PathFor(ProvidersOverrideFile));
         _http = new ProviderHttp(config.UserAgent, handler, browser);
+        _batchSample = new BatchSampleWriter(data);
         _providers = new IInventoryProvider[]
         {
             new TrulieveProvider(_http, config.Trulieve),
-            new MosaicProvider(_http, config.Mosaic),
+            new MosaicProvider(_http, config.Mosaic, _batchSample.Capture),
             new JaneProvider(_http, config.Jane),
             new DutchieProvider(_http, config.Dutchie),
             new SweedProvider(_http, config.Sweed),
