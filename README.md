@@ -230,7 +230,8 @@ dotnet run --project src/Gci.Cli -- refresh
 `%LOCALAPPDATA%\GCI`: `settings.json`, `watches.json`, `state.json` (last menu per store), `changes.json` (history),
 `stores.json`, `feeds.json` (followed feeds, posts, read state), `profile.dat`, `images\` (thumbnail cache +
 `index.json` of versions and product→image links), `webview\` (Edge WebView2 profile, only created if a menu needed
-it), `webview-shop\` (the Preorder window's Edge profile, with any store sign-ins), `telemetry.json` (unsent events, only if you opted in) and
+it), `webview-shop\` (the Preorder window's Edge profile, with any store sign-ins), `mosaic-batch-sample.json`
+(written once if a Botanical Sciences product ever exposes batch detail, so batch-level restock detection can be wired to it), `telemetry.json` (unsent events, only if you opted in) and
 `telemetry-log.jsonl` (what was sent).
 
 ### When a menu platform changes

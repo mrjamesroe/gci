@@ -9,9 +9,13 @@ namespace Gci.Core.Providers;
 /// plus the independent pharmacies that carry their products (e.g. Lotus Farmacy).
 /// The product list is fixed at 12 per page, so fetching pages through it.
 /// </summary>
-public sealed class MosaicProvider(ProviderHttp http, MosaicConfig config) : IInventoryProvider
+public sealed class MosaicProvider(ProviderHttp http, MosaicConfig config, Action<StoreInfo, JsonNode>? onBatchSample = null) : IInventoryProvider
 {
     private const int MaxPages = 40;
+
+    /// <summary>True once a product carries a non-empty <c>inventory_batches</c> (Georgia stores usually leave it empty).</summary>
+    internal static bool HasInventoryBatches(JsonNode product) =>
+        product.Arr("product_variants").Any(v => v.Arr("inventory_batches").Any());
 
     public ProviderKind Kind => ProviderKind.Mosaic;
 
@@ -59,6 +63,9 @@ public sealed class MosaicProvider(ProviderHttp http, MosaicConfig config) : IIn
             var products = res.Arr("products").ToList();
             foreach (var p in products)
                 items.AddRange(Map(store, p));
+
+            if (onBatchSample is not null && products.FirstOrDefault(HasInventoryBatches) is { } withBatch)
+                onBatchSample(store, withBatch);
 
             seenProducts += products.Count;
             var total = res.Int("total_records") ?? 0;
