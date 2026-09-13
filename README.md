@@ -42,7 +42,8 @@ with a Cloudflare block page, GCI escalates automatically and remembers what wor
    there, exactly as the store's website does, with Edge's own connection and cookies. If Cloudflare shows a
    "checking your browser" page, WebView2 opens the site's home page invisibly and lets the check finish. It starts
    only when needed and closes after 3 idle minutes. The WebView2 Runtime comes with Windows 11 and up-to-date
-   Windows 10; if it's missing, the store's status in **Stores** gives Microsoft's download link.
+   Windows 10; if a monitored store needs it and it's missing, GCI shows a banner with a **Download WebView2** button
+   (Microsoft's small installer) and an **I've installed it** button that checks again and refreshes.
 
 If a store is still blocked after all that, its **Stores** status says so; a VPN, proxy or network filter is the usual
 cause. `GCI_NO_CURL=1` skips step 1, to test step 2 on a PC where curl works.
@@ -124,6 +125,7 @@ sends:
 | `news_opened`, `news_alert_sent`, `feed_added`/`removed` | The feed name or website host and post title |
 | `tab_viewed`, `filter_used`, `search_used`, `setting_changed`, `tray_action`, `toast_clicked` | Which screen, filter value, or setting (searches are counted; search text is never sent) |
 | `platform_error`, crash reports | The menu platform and an error category; crash reports carry the error type and stack trace with your Windows username, profile path, emails and long numbers removed |
+| `webview2_download_clicked`, `webview2_rechecked` | That the WebView2 download button was used, and whether the runtime was found afterwards |
 | `update_*`, `app_upgraded` | Version numbers and whether updating succeeded |
 | `phone_setup_*`, `phone_nudge_dismissed` | Whether phone alerts were set up, whether the test push worked, and whether the server is the public ntfy.sh (never the topic name) |
 

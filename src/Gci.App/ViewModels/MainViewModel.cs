@@ -482,6 +482,47 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var on = StoreRows.Count(r => r.IsEnabled);
         var failing = StoreRows.Count(r => r.IsEnabled && r.Error is not null);
         StoresSummary = $"Monitoring {on} of {StoreRows.Count} stores" + (failing > 0 ? $" · {failing} with errors" : "");
+        UpdateWebView2Banner();
+    }
+
+    // ---- WebView2 -----------------------------------------------------------------------------
+
+    /// <summary>Shown when a monitored store can only be read through Edge WebView2 and this PC doesn't have it.</summary>
+    [ObservableProperty] private bool _showWebView2Banner;
+    [ObservableProperty] private string _webView2BannerText = "";
+
+    private void UpdateWebView2Banner()
+    {
+        var operators = StoreRows
+            .Where(r => r.IsEnabled && r.Error?.Contains("WebView2 Runtime", StringComparison.OrdinalIgnoreCase) == true)
+            .Select(r => r.Store.Operator).Distinct().ToList();
+        ShowWebView2Banner = operators.Count > 0 && BrowserTransport.RuntimeVersion() is null;
+        if (ShowWebView2Banner)
+            WebView2BannerText = $"{string.Join(" and ", operators)} {(operators.Count == 1 ? "needs" : "need")} Microsoft Edge WebView2, " +
+                                 "which isn't installed on this PC.";
+    }
+
+    [RelayCommand]
+    private void DownloadWebView2()
+    {
+        OpenUrl(Gci.Core.Providers.BrowserUnavailableException.DownloadUrl);
+        StatusText = "Run the downloaded MicrosoftEdgeWebview2Setup.exe, then click \"I've installed it\".";
+        _telemetry.Track("webview2_download_clicked");
+    }
+
+    [RelayCommand]
+    private void RecheckWebView2()
+    {
+        var installed = BrowserTransport.RuntimeVersion() is not null;
+        _telemetry.Track("webview2_rechecked", new Dictionary<string, object?> { ["installed"] = installed });
+        if (!installed)
+        {
+            StatusText = "WebView2 isn't installed yet. Run the downloaded MicrosoftEdgeWebview2Setup.exe, then try again.";
+            return;
+        }
+        ShowWebView2Banner = false;
+        StatusText = "WebView2 found. Refreshing menus…";
+        _ = RefreshAsync();
     }
 
     private void OnStoreToggled(StoreRow row)
