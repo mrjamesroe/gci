@@ -18,6 +18,18 @@ public partial class MainWindow : Window
         DataContext = vm;
         vm.ShowWatchEditor = editor => new WatchEditorWindow(editor) { Owner = this }.ShowDialog() == true;
         vm.ShowPhoneSetup = setup => new PhoneSetupWindow(setup) { Owner = this }.ShowDialog();
+        vm.ShowPreorder = preorder =>
+        {
+            // One Preorder window, reused, so a store sign-in stays put; not owned, so it can stay open with GCI in the tray.
+            if (_preorder is not null)
+            {
+                _preorder.Open(preorder);
+                return;
+            }
+            _preorder = new PreorderWindow(preorder, vm.PreorderBrowserFolder);
+            _preorder.Closed += (_, _) => _preorder = null;
+            _preorder.Show();
+        };
         vm.Confirm = message => MessageBox.Show(this, message, "GCI", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
         ApplyImageSetting();
         vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(MainViewModel.ShowImages)) ApplyImageSetting(); };
@@ -65,6 +77,8 @@ public partial class MainWindow : Window
     {
         if (_vm.SelectedRow is { } row) _vm.OpenProductCommand.Execute(row);
     }
+
+    private PreorderWindow? _preorder;
 
     private void OnChangeDoubleClick(object sender, MouseButtonEventArgs e)
     {

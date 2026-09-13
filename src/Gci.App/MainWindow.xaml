@@ -172,6 +172,7 @@
                     <DataGrid x:Name="InventoryGrid" Grid.Row="1" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" MouseDoubleClick="OnItemDoubleClick">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
+                                <MenuItem Header="🛒 Preorder in GCI…" Command="{Binding PreorderCommand}" FontWeight="SemiBold" />
                                 <MenuItem Header="Open product page" Command="{Binding OpenProductCommand}" />
                                 <Separator />
                                 <MenuItem Header="★ Watch this product at this store" Command="{Binding WatchProductHereCommand}" />
@@ -304,6 +305,12 @@
                         <TextBlock Text="{Binding ChangesSummary}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
                     </DockPanel>
                     <DataGrid Grid.Row="1" ItemsSource="{Binding ChangeRows}" SelectedItem="{Binding SelectedChange}" MouseDoubleClick="OnChangeDoubleClick">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="🛒 Preorder in GCI…" Command="{Binding PreorderChangeCommand}" FontWeight="SemiBold" />
+                                <MenuItem Header="Open product page" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding SelectedChange.Url}" />
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
                         <DataGrid.RowStyle>
                             <Style TargetType="DataGridRow">
                                 <Style.Triggers>
@@ -523,9 +530,9 @@
                             <StackPanel>
                                 <TextBlock Text="Patient details" Style="{StaticResource SectionTitle}" />
                                 <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}">
-                                    Optional. Georgia dispensary menus are public, so GCI doesn't need these to show inventory and never sends them anywhere.
-                                    They're kept encrypted on this PC (Windows DPAPI, your account only) so you have your card details handy when ordering,
-                                    and so GCI can remind you before your Low THC Oil Registry card expires.
+                                    Optional. Georgia dispensary menus are public, so GCI doesn't need these to show inventory. They're kept encrypted on this PC
+                                    (Windows DPAPI, your account only). The only place they go is into a store's checkout form when you use 🛒 Preorder, and
+                                    only you submit that form. GCI also reminds you before your Low THC Oil Registry card expires.
                                 </TextBlock>
                                 <Grid Margin="0,6,0,0">
                                     <Grid.ColumnDefinitions>
@@ -540,6 +547,8 @@
                                         <DatePicker SelectedDate="{Binding BirthDate}" />
                                         <TextBlock Text="Card issued" Style="{StaticResource FieldLabel}" />
                                         <DatePicker SelectedDate="{Binding CardIssued}" />
+                                        <TextBlock Text="Phone" Style="{StaticResource FieldLabel}" />
+                                        <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
                                         <TextBlock Text="Last name" Style="{StaticResource FieldLabel}" />
@@ -548,6 +557,8 @@
                                         <TextBox Text="{Binding RegistryCardNumber, UpdateSourceTrigger=PropertyChanged}" />
                                         <TextBlock Text="Card expires" Style="{StaticResource FieldLabel}" />
                                         <DatePicker SelectedDate="{Binding CardExpires}" />
+                                        <TextBlock Text="Email" Style="{StaticResource FieldLabel}" />
+                                        <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" />
                                     </StackPanel>
                                 </Grid>
                                 <TextBlock Text="Caregiver (if someone purchases on your behalf)" Style="{StaticResource FieldLabel}" />

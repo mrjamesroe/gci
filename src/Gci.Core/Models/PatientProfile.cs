@@ -1,8 +1,9 @@
 namespace Gci.Core.Models;
 
 /// <summary>
-/// The patient's Georgia Low THC Oil Registry details. Stored encrypted on this PC only;
-/// none of the menus GCI reads require it, so it is never sent anywhere.
+/// The patient's Georgia Low THC Oil Registry details. Stored encrypted on this PC only. None of the menus GCI reads
+/// require it; the only place it goes is into a store's checkout form in the Preorder window, and only the patient
+/// submits that form.
 /// </summary>
 public sealed class PatientProfile
 {
@@ -12,6 +13,9 @@ public sealed class PatientProfile
     public string RegistryCardNumber { get; set; } = "";
     public DateTime? CardIssued { get; set; }
     public DateTime? CardExpires { get; set; }
+    /// <summary>Contact details stores ask for with a pickup order.</summary>
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
     /// <summary>Optional caregiver name when purchases are made on the patient's behalf.</summary>
     public string? Caregiver { get; set; }
     public string? PreferredStoreKey { get; set; }

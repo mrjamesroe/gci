@@ -49,6 +49,9 @@
 
   <ItemGroup>
     <Resource Include="Assets\gci.ico" />
+    <!-- Scripts the Preorder window injects into store pages. -->
+    <EmbeddedResource Include="Assets\prefill.js" LogicalName="Gci.App.Assets.prefill.js" />
+    <EmbeddedResource Include="Assets\cart.js" LogicalName="Gci.App.Assets.cart.js" />
   </ItemGroup>
 
 </Project>

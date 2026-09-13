@@ -19,7 +19,8 @@ public sealed class Notifier : IDisposable
         if (settings.ToastNotifications)
         {
             foreach (var (e, rule) in distinct.Take(MaxIndividualToasts))
-                ShowToast(Title(e), Body(e), e.StoreName, e.Url, rule.Name, ActionLabel(e));
+                ShowToast(Title(e), Body(e), e.StoreName, e.Url, rule.Name, e.Kind == ChangeKind.SoldOut ? "View" : "Open in browser",
+                    e.Kind != ChangeKind.SoldOut && e.Url is not null ? (e.StoreKey, e.Name) : null);
             if (distinct.Count > MaxIndividualToasts)
             {
                 var rest = distinct.Skip(MaxIndividualToasts).ToList();
@@ -60,21 +61,32 @@ public sealed class Notifier : IDisposable
         }
     }
 
-    public void ShowToast(string title, string body, string? attribution, string? url, string? tag, string openLabel = "Open menu")
+    /// <summary>
+    /// A toast whose body click opens <paramref name="url"/>. With <paramref name="preorder"/> (a product that can be
+    /// ordered), clicking it or its Preorder button opens GCI's Preorder window instead, with the browser as a second button.
+    /// </summary>
+    public void ShowToast(string title, string body, string? attribution, string? url, string? tag, string openLabel = "Open menu",
+        (string StoreKey, string Name)? preorder = null)
     {
         try
         {
             var builder = new ToastContentBuilder()
-                .AddArgument("action", "open")
+                .AddArgument("action", preorder is not null && url is not null ? "preorder" : "open")
                 .AddText(title)
                 .AddText(body);
             if (attribution is not null) builder.AddAttributionText(attribution);
             if (url is not null)
             {
                 builder.AddArgument("url", url);
+                if (preorder is { } p)
+                {
+                    builder.AddArgument("store", p.StoreKey).AddArgument("name", p.Name);
+                    builder.AddButton(new ToastButton().SetContent("Preorder")
+                        .AddArgument("action", "preorder").AddArgument("store", p.StoreKey).AddArgument("url", url).AddArgument("name", p.Name));
+                }
                 builder.AddButton(new ToastButton().SetContent(openLabel).SetProtocolActivation(new Uri(url)));
             }
-            builder.AddButton(new ToastButton().SetContent("Show GCI").AddArgument("action", "show"));
+            if (preorder is null) builder.AddButton(new ToastButton().SetContent("Show GCI").AddArgument("action", "show"));
             builder.Show(toast =>
             {
                 if (tag is not null) toast.Group = "gci";
