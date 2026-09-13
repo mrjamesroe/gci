@@ -622,6 +622,69 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         });
     }
 
+    // ---- Preorder ---------------------------------------------------------------------------
+
+    /// <summary>Opens (or reuses) the Preorder window; set by the main window.</summary>
+    public Action<PreorderViewModel>? ShowPreorder { get; set; }
+
+    /// <summary>The Preorder window's own Edge profile, so store sign-ins are remembered.</summary>
+    public string PreorderBrowserFolder => _data.PathFor("webview-shop");
+
+    [RelayCommand]
+    private void Preorder(ItemRow? row)
+    {
+        row ??= SelectedRow;
+        if (row?.Url is null) return;
+        OpenPreorder(new PreorderRequest
+        {
+            StoreKey = row.Store.Key, StoreName = row.StoreName, Operator = row.Operator, Provider = row.Store.Provider,
+            ProductName = row.Name, ProductUrl = row.Url, Source = "inventory",
+        });
+    }
+
+    [RelayCommand]
+    private void PreorderChange(ChangeRow? row)
+    {
+        row ??= SelectedChange;
+        if (row?.Url is null || _inventory.GetStore(row.Event.StoreKey) is not { } store) return;
+        OpenPreorder(new PreorderRequest
+        {
+            StoreKey = store.Key, StoreName = store.DisplayName, Operator = store.Operator, Provider = store.Provider,
+            ProductName = row.Name, ProductUrl = row.Url, Source = "changes",
+        });
+    }
+
+    /// <summary>From a watch alert's Preorder button.</summary>
+    public void OpenPreorderFromToast(string storeKey, string url, string name)
+    {
+        if (_inventory.GetStore(storeKey) is not { } store)
+        {
+            OpenUrl(url);
+            return;
+        }
+        OpenPreorder(new PreorderRequest
+        {
+            StoreKey = store.Key, StoreName = store.DisplayName, Operator = store.Operator, Provider = store.Provider,
+            ProductName = string.IsNullOrWhiteSpace(name) ? "Product" : name, ProductUrl = url, Source = "toast",
+        });
+    }
+
+    private void OpenPreorder(PreorderRequest request)
+    {
+        if (ShowPreorder is null || BrowserTransport.RuntimeVersion() is null)
+        {
+            _telemetry.Track("preorder_browser_fallback", new Dictionary<string, object?>
+            {
+                ["platform"] = request.Provider.ToString(), ["reason"] = ShowPreorder is null ? "no_window" : "no_webview2",
+            });
+            OpenUrl(request.ProductUrl);
+            if (ShowPreorder is not null)
+                StatusText = "Preorder needs Microsoft Edge WebView2, which isn't installed, so the product opened in your browser instead.";
+            return;
+        }
+        ShowPreorder(new PreorderViewModel(request, () => PrefillData.From(Profile.Current), _telemetry));
+    }
+
     [RelayCommand]
     private void WatchProductHere(ItemRow? row)
     {

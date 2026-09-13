@@ -115,7 +115,9 @@ public partial class App : Application
             {
                 var action = toastArgs.TryGetValue("action", out var a) ? a : "open";
                 _vm.TrackEvent("toast_clicked", new() { ["action"] = action, ["has_link"] = toastArgs.Contains("url") });
-                if (action == "open" && toastArgs.TryGetValue("url", out var url)) _vm.OpenUrlCommand.Execute(url);
+                if (action == "preorder" && toastArgs.TryGetValue("store", out var store) && toastArgs.TryGetValue("url", out var productUrl))
+                    _vm.OpenPreorderFromToast(store, productUrl, toastArgs.TryGetValue("name", out var name) ? name : "");
+                else if (action == "open" && toastArgs.TryGetValue("url", out var url)) _vm.OpenUrlCommand.Execute(url);
                 else ShowWindow();
             });
         };
@@ -127,6 +129,13 @@ public partial class App : Application
         _vm.RecordLaunch(justUpdated ? "updated" : toastLaunch ? "toast" : e.Args.Contains("--minimized") ? "windows_startup"
             : startHidden ? "minimized" : "normal");
         Dispatcher.BeginInvoke(() => _ = _vm.RefreshAsync(), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+#if DEBUG
+        // Development aid: --preorder <storeKey> <productUrl> opens the Preorder window straight away.
+        var preorder = Array.IndexOf(e.Args, "--preorder");
+        if (preorder >= 0 && preorder + 2 < e.Args.Length)
+            Dispatcher.BeginInvoke(() => _vm.OpenPreorderFromToast(e.Args[preorder + 1], e.Args[preorder + 2], "Test product"),
+                System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+#endif
     }
 
     private void ShowWindow() => _window?.BringToFront();

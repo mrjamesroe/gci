@@ -100,11 +100,35 @@ Keeping them honest when stores change pictures:
 - **EXIF orientation** is applied, so photos stored sideways with a rotate tag display upright; transparent PNGs are
   flattened onto white.
 
+## Preorder
+
+Georgia dispensary orders are pickup preorders: no payment online, just who's picking up. **🛒 Preorder in GCI** (right-click
+a product in **Inventory** or **Changes**, or the **Preorder** button on a watch alert) opens the store's own website in a
+GCI window and gets you to checkout fast:
+
+- **Trulieve**: GCI clicks *Add to Bag* for the right store and goes to checkout. Checkout needs your Trulieve sign-in; enter
+  it on the page once and the window remembers it (it keeps its own Edge WebView2 profile in `webview-shop\`; GCI never
+  sees or stores your password).
+- **Botanical Sciences and partner pharmacies (Lotus Farmacy, …)**: GCI clicks *Add to Cart* and opens the cart. If the site
+  asks whether you're a medical patient, you answer; GCI waits and never adds the item twice.
+- **Fine Fettle, True Bliss, Treevana**: the product page opens; add it to your cart and check out as usual.
+
+On every store, GCI fills your saved patient details (name, date of birth, registry card number and expiry, phone,
+email) into the checkout form as it appears and outlines each filled field in green. It never overwrites what's already
+there, never touches sign-in forms or address, license, promo or payment fields, and only fills forms that ask for at
+least two patient details (**Fill my details** fills the current page on request). **You review the order and place it
+on the page; GCI never submits anything**, and it doesn't answer eligibility questions or CAPTCHAs for you.
+
+Details are sent only to top-level HTTPS pages on the store sites GCI reads (trulieve.com, botanicalsciences.com,
+iheartjane.com, dutchie.com, treevanaremedy.com, or the product's own site). Without WebView2, Preorder opens the product
+in your browser instead.
+
 ## Patient details
 
-The **Patient** tab stores your name, date of birth, registry card number and card dates, encrypted with Windows DPAPI
-(your Windows account only) in `profile.dat`. None of the menus need them, so GCI never sends them anywhere; it uses the
-expiry date to remind you daily in the last 30 days.
+The **Patient** tab stores your name, date of birth, registry card number and card dates, phone and email, encrypted with
+Windows DPAPI (your Windows account only) in `profile.dat`. None of the menus need them. The only place they go is into a
+store's checkout form in the Preorder window, when you open it, and only you submit that form. GCI also uses the expiry
+date to remind you daily in the last 30 days.
 
 ## Privacy
 
@@ -126,10 +150,11 @@ sends:
 | `tab_viewed`, `filter_used`, `search_used`, `setting_changed`, `tray_action`, `toast_clicked` | Which screen, filter value, or setting (searches are counted; search text is never sent) |
 | `platform_error`, crash reports | The menu platform and an error category; crash reports carry the error type and stack trace with your Windows username, profile path, emails and long numbers removed |
 | `webview2_download_clicked`, `webview2_rechecked` | That the WebView2 download button was used, and whether the runtime was found afterwards |
+| `preorder_opened`, `preorder_step`, `preorder_filled`, `preorder_browser_fallback` | Store, operator and platform, where Preorder was opened from, how many patient fields are saved (a count), how far the add-to-cart got ("added", "sign-in", …), and which kinds of fields were filled ("email", "birthDate", …), never their values |
 | `update_*`, `app_upgraded` | Version numbers and whether updating succeeded |
 | `phone_setup_*`, `phone_nudge_dismissed` | Whether phone alerts were set up, whether the test push worked, and whether the server is the public ntfy.sh (never the topic name) |
 
-**Never sent:** your patient details (name, date of birth, card number, card dates, caregiver), watch names or any
+**Never sent to Aptabase:** your patient details (name, date of birth, card number, card dates, phone, email, caregiver), watch names or any
 free text you type, search text, your ntfy topic, file paths, or anything that identifies you or your PC. Volume is
 capped at 150 events per day per install.
 
@@ -205,7 +230,7 @@ dotnet run --project src/Gci.Cli -- refresh
 `%LOCALAPPDATA%\GCI`: `settings.json`, `watches.json`, `state.json` (last menu per store), `changes.json` (history),
 `stores.json`, `feeds.json` (followed feeds, posts, read state), `profile.dat`, `images\` (thumbnail cache +
 `index.json` of versions and product→image links), `webview\` (Edge WebView2 profile, only created if a menu needed
-it), `telemetry.json` (unsent events, only if you opted in) and
+it), `webview-shop\` (the Preorder window's Edge profile, with any store sign-ins), `telemetry.json` (unsent events, only if you opted in) and
 `telemetry-log.jsonl` (what was sent).
 
 ### When a menu platform changes

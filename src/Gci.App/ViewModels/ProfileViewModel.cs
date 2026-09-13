@@ -25,6 +25,8 @@ public sealed partial class ProfileViewModel : ObservableObject
     [ObservableProperty] private DateTime? _cardIssued;
     [ObservableProperty] private DateTime? _cardExpires;
     [ObservableProperty] private string _caregiver = "";
+    [ObservableProperty] private string _phone = "";
+    [ObservableProperty] private string _email = "";
     [ObservableProperty] private string _savedMessage = "";
 
     public PatientProfile Current => new()
@@ -36,6 +38,8 @@ public sealed partial class ProfileViewModel : ObservableObject
         CardIssued = CardIssued,
         CardExpires = CardExpires,
         Caregiver = string.IsNullOrWhiteSpace(Caregiver) ? null : Caregiver.Trim(),
+        Phone = string.IsNullOrWhiteSpace(Phone) ? null : Phone.Trim(),
+        Email = string.IsNullOrWhiteSpace(Email) ? null : Email.Trim(),
     };
 
     public string CardStatus
@@ -72,6 +76,8 @@ public sealed partial class ProfileViewModel : ObservableObject
             ["card_number"] = p.RegistryCardNumber.Length > 0,
             ["card_dates"] = p.CardIssued is not null || p.CardExpires is not null,
             ["caregiver"] = p.Caregiver is not null,
+            ["phone"] = p.Phone is not null,
+            ["email"] = p.Email is not null,
         });
     }
 
@@ -93,5 +99,7 @@ public sealed partial class ProfileViewModel : ObservableObject
         CardIssued = p.CardIssued;
         CardExpires = p.CardExpires;
         Caregiver = p.Caregiver ?? "";
+        Phone = p.Phone ?? "";
+        Email = p.Email ?? "";
     }
 }
