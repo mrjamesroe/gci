@@ -6,7 +6,7 @@ using Microsoft.Toolkit.Uwp.Notifications;
 namespace Gci.App.Services;
 
 /// <summary>Delivers watch matches as Windows toasts and, optionally, ntfy pushes to a phone.</summary>
-public sealed class Notifier : IDisposable
+public sealed class Notifier : INotifier, IDisposable
 {
     private const int MaxIndividualToasts = 4;
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(15) };

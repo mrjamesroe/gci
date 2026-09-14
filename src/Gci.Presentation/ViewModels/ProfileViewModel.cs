@@ -8,10 +8,10 @@ namespace Gci.App.ViewModels;
 
 public sealed partial class ProfileViewModel : ObservableObject
 {
-    private readonly ProfileStore _store;
+    private readonly IProfileStore _store;
     private readonly TelemetryClient _telemetry;
 
-    public ProfileViewModel(ProfileStore store, TelemetryClient telemetry)
+    public ProfileViewModel(IProfileStore store, TelemetryClient telemetry)
     {
         _store = store;
         _telemetry = telemetry;

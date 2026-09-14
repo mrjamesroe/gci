@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gci.App.Services;
@@ -19,24 +18,30 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private readonly DataStore _data;
     private readonly InventoryService _inventory;
-    private readonly Notifier _notifier;
-    private readonly ThumbnailService _thumbnails;
+    private readonly INotifier _notifier;
+    private readonly IThumbnailCache _thumbnails;
     private readonly FeedService _feeds;
     private readonly UpdateChecker _updates;
+    private readonly IEmbeddedBrowser _browser;
+    private readonly IUpdateInstaller _updater;
+    private readonly IStartupRegistration _startup;
+    private readonly ISystemSnapshot _systemSnapshot;
+    private readonly IClipboard _clipboard;
     private readonly IReadOnlyList<string> _launchArgs;
     private readonly Version _currentVersion;
     private bool _checkedUpdatesThisSession;
     private bool _checkingUpdates;
-    private readonly DispatcherTimer _timer;
+    private readonly ITicker _ticker;
     private readonly List<WatchRule> _watches;
     private List<ItemRow> _allRows = new();
     private DateTimeOffset _nextRefresh = DateTimeOffset.Now.AddSeconds(2);
     private CancellationTokenSource? _refreshCts;
     private bool _bulkStoreEdit;
 
-    public MainViewModel(DataStore data, InventoryService inventory, ProfileStore profiles, Notifier notifier,
-        ThumbnailService thumbnails, FeedService feeds, UpdateChecker updates, TelemetryClient telemetry,
-        IReadOnlyList<string> launchArgs)
+    public MainViewModel(DataStore data, InventoryService inventory, IProfileStore profiles, INotifier notifier,
+        IThumbnailCache thumbnails, FeedService feeds, UpdateChecker updates, TelemetryClient telemetry,
+        IEmbeddedBrowser browser, IUpdateInstaller updater, IStartupRegistration startup, ISystemSnapshot systemSnapshot,
+        IClipboard clipboard, ITicker ticker, IReadOnlyList<string> launchArgs)
     {
         _data = data;
         _inventory = inventory;
@@ -44,6 +49,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _thumbnails = thumbnails;
         _feeds = feeds;
         _updates = updates;
+        _browser = browser;
+        _updater = updater;
+        _startup = startup;
+        _systemSnapshot = systemSnapshot;
+        _clipboard = clipboard;
+        _ticker = ticker;
         _launchArgs = launchArgs;
         _currentVersion = typeof(MainViewModel).Assembly.GetName().Version ?? new Version(0, 0, 0);
         CurrentVersion = _currentVersion.ToString(3);
@@ -82,9 +93,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             LastRefreshText = $"Updated {cached.LocalDateTime:MMM d, h:mm tt}";
         UpdatePhoneNudge();
 
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
-        _timer.Tick += (_, _) => OnTick();
-        _timer.Start();
+        _ticker.Tick += OnTick;
+        _ticker.Start();
     }
 
     public AppSettings Settings { get; }
@@ -211,7 +221,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         TrackSetting("start_with_windows", value);
         try
         {
-            StartupRegistration.Apply(value);
+            _startup.Apply(value);
         }
         catch (Exception ex)
         {
@@ -497,7 +507,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var operators = StoreRows
             .Where(r => r.IsEnabled && r.Error?.Contains("WebView2 Runtime", StringComparison.OrdinalIgnoreCase) == true)
             .Select(r => r.Store.Operator).Distinct().ToList();
-        ShowWebView2Banner = operators.Count > 0 && BrowserTransport.RuntimeVersion() is null;
+        ShowWebView2Banner = operators.Count > 0 && !_browser.IsAvailable;
         if (ShowWebView2Banner)
             WebView2BannerText = $"{string.Join(" and ", operators)} {(operators.Count == 1 ? "needs" : "need")} Microsoft Edge WebView2, " +
                                  "which isn't installed on this PC.";
@@ -514,7 +524,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void RecheckWebView2()
     {
-        var installed = BrowserTransport.RuntimeVersion() is not null;
+        var installed = _browser.IsAvailable;
         _telemetry.Track("webview2_rechecked", new Dictionary<string, object?> { ["installed"] = installed });
         if (!installed)
         {
@@ -672,7 +682,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void OpenPreorder(PreorderRequest request)
     {
-        if (ShowPreorder is null || BrowserTransport.RuntimeVersion() is null)
+        if (ShowPreorder is null || !_browser.IsAvailable)
         {
             _telemetry.Track("preorder_browser_fallback", new Dictionary<string, object?>
             {
@@ -813,7 +823,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void OpenPhoneSetup()
     {
         if (ShowPhoneSetup is null) return;
-        var setup = new PhoneSetupViewModel(Settings.NtfyTopicUrl, _notifier, url => NtfyTopicUrl = url ?? "", _telemetry);
+        var setup = new PhoneSetupViewModel(Settings.NtfyTopicUrl, _notifier, _clipboard, url => NtfyTopicUrl = url ?? "", _telemetry);
         ShowPhoneSetup(setup);
         UpdatePhoneNudge();
         SettingsMessage = string.IsNullOrWhiteSpace(Settings.NtfyTopicUrl) ? "Phone alerts are off." : "Phone alerts are on.";
@@ -899,7 +909,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private async Task InstallUpdateAsync()
     {
         if (AvailableUpdate is not { } release || IsInstallingUpdate) return;
-        if (!UpdateInstaller.CanSelfUpdate(out var reason))
+        if (!_updater.CanSelfUpdate(out var reason))
         {
             UpdateStatusText = reason;
             UpdateBannerText = reason;
@@ -928,7 +938,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             var downloaded = await _updates.DownloadAsync(release, _data.PathFor("updates"), progress);
             stage = "install";
             UpdateBannerText = $"Installing GCI {version} and restarting…";
-            UpdateInstaller.InstallAndRestart(downloaded, _launchArgs);
+            _updater.InstallAndRestart(downloaded, _launchArgs);
             ExitRequested?.Invoke();
         }
         catch (Exception ex)
@@ -1183,7 +1193,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _timer.Stop();
+        _ticker.Stop();
         _refreshCts?.Cancel();
     }
 }

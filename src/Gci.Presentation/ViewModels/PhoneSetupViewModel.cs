@@ -1,6 +1,3 @@
-using System.IO;
-using System.Windows;
-using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gci.App.Services;
@@ -18,13 +15,16 @@ public sealed partial class PhoneSetupViewModel : ObservableObject
     public const string AppStoreUrl = "https://apps.apple.com/us/app/ntfy/id1625396347";
     public const string PlayStoreUrl = "https://play.google.com/store/apps/details?id=io.heckel.ntfy";
 
-    private readonly Notifier _notifier;
+    private readonly INotifier _notifier;
+    private readonly IClipboard _clipboard;
     private readonly Action<string?> _saveTopic;
     private readonly TelemetryClient _telemetry;
 
-    public PhoneSetupViewModel(string? currentTopicUrl, Notifier notifier, Action<string?> saveTopic, TelemetryClient telemetry)
+    public PhoneSetupViewModel(string? currentTopicUrl, INotifier notifier, IClipboard clipboard, Action<string?> saveTopic,
+        TelemetryClient telemetry)
     {
         _notifier = notifier;
+        _clipboard = clipboard;
         _saveTopic = saveTopic;
         _telemetry = telemetry;
         _telemetry.Track("phone_setup_opened", new Dictionary<string, object?> { ["had_topic"] = !string.IsNullOrWhiteSpace(currentTopicUrl) });
@@ -34,7 +34,7 @@ public sealed partial class PhoneSetupViewModel : ObservableObject
     [ObservableProperty] private string _topicUrl = "";
     [ObservableProperty] private string _topicName = "";
     [ObservableProperty] private string _server = "";
-    [ObservableProperty] private BitmapSource? _qrCode;
+    [ObservableProperty] private byte[]? _qrCodePng;
     [ObservableProperty] private bool _isPublicServer;
     [ObservableProperty] private string _testResult = "";
     [ObservableProperty] private bool _testSucceeded;
@@ -48,7 +48,7 @@ public sealed partial class PhoneSetupViewModel : ObservableObject
         TopicName = NtfyTopic.TopicName(url) ?? url;
         Server = Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.Host : "";
         IsPublicServer = NtfyTopic.IsPublicServer(url);
-        QrCode = NtfyTopic.SubscribeLink(url) is { } link ? RenderQr(link) : null;
+        QrCodePng = NtfyTopic.SubscribeLink(url) is { } link ? RenderQrPng(link) : null;
         TestResult = "";
         TestSucceeded = false;
         _saveTopic(url);
@@ -82,7 +82,7 @@ public sealed partial class PhoneSetupViewModel : ObservableObject
     {
         try
         {
-            Clipboard.SetText(TopicName);
+            _clipboard.SetText(TopicName);
             TestResult = "Topic name copied.";
         }
         catch (Exception)
@@ -113,17 +113,11 @@ public sealed partial class PhoneSetupViewModel : ObservableObject
         }
     }
 
-    private static BitmapSource RenderQr(string text)
+    /// <summary>The subscribe QR as PNG bytes; the view decodes it to its own bitmap type.</summary>
+    private static byte[] RenderQrPng(string text)
     {
         using var generator = new QRCodeGenerator();
         using var data = generator.CreateQrCode(text, QRCodeGenerator.ECCLevel.M);
-        var png = new PngByteQRCode(data).GetGraphic(10);
-        var image = new BitmapImage();
-        image.BeginInit();
-        image.CacheOption = BitmapCacheOption.OnLoad;
-        image.StreamSource = new MemoryStream(png);
-        image.EndInit();
-        image.Freeze();
-        return image;
+        return new PngByteQRCode(data).GetGraphic(10);
     }
 }

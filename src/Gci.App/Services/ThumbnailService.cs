@@ -10,7 +10,7 @@ namespace Gci.App.Services;
 /// in-memory LRU), shows cached pictures immediately while stale ones are re-checked in the background, and
 /// announces changes on the UI thread so visible rows swap to the new picture.
 /// </summary>
-public sealed class ThumbnailService : IDisposable
+public sealed class ThumbnailService : IThumbnailCache, IDisposable
 {
     private const int MemoryCapacity = 800;
 

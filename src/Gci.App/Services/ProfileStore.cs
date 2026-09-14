@@ -10,7 +10,7 @@ namespace Gci.App.Services;
 /// Keeps the patient profile in profile.dat, encrypted with Windows DPAPI for the current user,
 /// so it's unreadable to other accounts and off this PC.
 /// </summary>
-public sealed class ProfileStore(DataStore data)
+public sealed class ProfileStore(DataStore data) : IProfileStore
 {
     private const string FileName = "profile.dat";
     private static readonly byte[] Entropy = "GCI.PatientProfile.v1"u8.ToArray();
