@@ -158,14 +158,6 @@ public sealed class NoopThumbnailCache : IThumbnailCache
     public void Clear() { }
 }
 
-/// <summary>Encrypted patient storage lands in Phase 4 (macOS Keychain). For now, nothing is persisted.</summary>
-public sealed class NoopProfileStore : IProfileStore
-{
-    public PatientProfile Load() => new();
-    public void Save(PatientProfile profile) { }
-    public void Delete() { }
-}
-
 /// <summary>WKWebView-backed Cloudflare fallback / Preorder lands in Phase 4.</summary>
 public sealed class NoopEmbeddedBrowser : IEmbeddedBrowser
 {
