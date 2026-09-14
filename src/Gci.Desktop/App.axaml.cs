@@ -49,7 +49,7 @@ public partial class App : Application
             _telemetry = new TelemetryClient(data, DesktopSystemSnapshot.SystemInfo());
             _thumbnails = new DesktopThumbnailService(data, userAgent);
             Views.Thumb.Service = _thumbnails;
-            _vm = new MainViewModel(data, _inventory, new NoopProfileStore(), new DesktopNotifier(), _thumbnails,
+            _vm = new MainViewModel(data, _inventory, new KeychainProfileStore(data), new DesktopNotifier(), _thumbnails,
                 _feeds, _updates, _telemetry, new NoopEmbeddedBrowser(), new NoopUpdateInstaller(), new NoopStartupRegistration(),
                 new DesktopSystemSnapshot(), new DesktopClipboard(), new DesktopTicker(TimeSpan.FromSeconds(15)), args);
 
