@@ -14,6 +14,25 @@
         <KeyBinding Gesture="F5" Command="{Binding RefreshCommand}" />
     </Window.KeyBindings>
 
+    <Window.Resources>
+        <!-- Product thumbnail cell shared by the Inventory and Changes tables: a small tile that shows the full-size
+             image (plus name/store) on hover. Works for any row exposing Image/Name/StoreName (ItemRow, ChangeRow). -->
+        <DataTemplate x:Key="ProductThumbCell">
+            <Border Width="42" Height="42" CornerRadius="4" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1">
+                <ToolTip.Tip>
+                    <StackPanel Width="240">
+                        <Border Width="240" Height="240" Background="{DynamicResource Card}">
+                            <Image v:Thumb.Size="320" v:Thumb.Image="{Binding Image}" Stretch="Uniform" />
+                        </Border>
+                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,8,0,0" />
+                        <TextBlock Text="{Binding StoreName}" Classes="muted" />
+                    </StackPanel>
+                </ToolTip.Tip>
+                <Image v:Thumb.Size="84" v:Thumb.Image="{Binding Image}" Stretch="Uniform" Margin="1" />
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <!-- ============================== Header ============================== -->
@@ -122,15 +141,8 @@
                                     <DataTemplate><TextBlock Text="{Binding WatchMark}" Classes="star" VerticalAlignment="Center" /></DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="" Width="56" CanUserSort="False" CanUserResize="False">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border Width="42" Height="42" CornerRadius="4" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1">
-                                            <Image v:Thumb.Size="84" v:Thumb.Image="{Binding Image}" Stretch="Uniform" Margin="1" />
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="" Width="56" CanUserSort="False" CanUserResize="False"
+                                                    CellTemplate="{StaticResource ProductThumbCell}" />
                             <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="100" />
                             <DataGridTextColumn Header="Product" Binding="{Binding Name}" Width="3*" />
                             <DataGridTextColumn Header="Brand" Binding="{Binding Brand}" Width="1.2*" />
@@ -208,6 +220,8 @@
                                     <DataTemplate><TextBlock Text="{Binding WatchMark}" Classes="star" VerticalAlignment="Center" /></DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="" Width="56" CanUserSort="False" CanUserResize="False"
+                                                    CellTemplate="{StaticResource ProductThumbCell}" />
                             <DataGridTextColumn Header="When" Binding="{Binding When}" Width="120" SortMemberPath="At" />
                             <DataGridTextColumn Header="Change" Binding="{Binding Kind}" Width="110" />
                             <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="95" />

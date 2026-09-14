@@ -34,6 +34,8 @@ public sealed record ChangeEvent
     public int? OldQuantity { get; init; }
     public int? NewQuantity { get; init; }
     public string? Url { get; init; }
+    public string? ImageUrl { get; init; }
+    public string? ThumbnailUrl { get; init; }
     /// <summary>Extra context, e.g. the potency of a newly arrived batch.</summary>
     public string? Detail { get; init; }
 

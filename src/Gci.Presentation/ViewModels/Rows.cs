@@ -98,6 +98,7 @@ public sealed partial class WatchRow(WatchRule rule, Func<string, string?> store
 public sealed class ChangeRow(ChangeEvent e, bool watched)
 {
     public ChangeEvent Event { get; } = e;
+    public ImageRef? Image { get; } = e.ImageUrl is { } url ? new ImageRef(e.ItemKey, url, e.ThumbnailUrl) : null;
     public bool Watched { get; } = watched;
     public string WatchMark => Watched ? "★" : "";
     public DateTimeOffset At => Event.At;

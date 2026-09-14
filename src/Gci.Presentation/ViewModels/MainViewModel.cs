@@ -1129,7 +1129,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private async Task SweepImagesAsync(bool force)
     {
         if (!ShowImages && !force) return;
-        var images = _allRows.Select(r => r.Image).Concat(NewsRows.Select(n => n.Image)).OfType<ImageRef>().ToList();
+        var images = _allRows.Select(r => r.Image)
+            .Concat(NewsRows.Select(n => n.Image))
+            .Concat(ChangeRows.Select(c => c.Image))
+            .OfType<ImageRef>().ToList();
         try
         {
             await _thumbnails.SweepAsync(images, force);

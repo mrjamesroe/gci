@@ -38,8 +38,11 @@ public partial class MainWindow : Window
     /// <summary>DataGrid columns aren't in the visual tree, so the image column is toggled here rather than bound.</summary>
     private void ApplyImageSetting()
     {
-        ImageColumn.Visibility = _vm.ShowImages ? Visibility.Visible : Visibility.Collapsed;
+        var visibility = _vm.ShowImages ? Visibility.Visible : Visibility.Collapsed;
+        ImageColumn.Visibility = visibility;
+        ChangesImageColumn.Visibility = visibility;
         InventoryGrid.RowHeight = _vm.ShowImages ? 48 : 30;
+        ChangesGrid.RowHeight = _vm.ShowImages ? 48 : 30;
     }
 
     /// <summary>True once the user chose Exit, so closing really quits.</summary>

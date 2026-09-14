@@ -304,7 +304,7 @@
                         <CheckBox DockPanel.Dock="Left" Content="★ Watched only" IsChecked="{Binding ChangesWatchedOnly}" />
                         <TextBlock Text="{Binding ChangesSummary}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
                     </DockPanel>
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding ChangeRows}" SelectedItem="{Binding SelectedChange}" MouseDoubleClick="OnChangeDoubleClick">
+                    <DataGrid x:Name="ChangesGrid" Grid.Row="1" ItemsSource="{Binding ChangeRows}" SelectedItem="{Binding SelectedChange}" MouseDoubleClick="OnChangeDoubleClick">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="🛒 Preorder in GCI…" Command="{Binding PreorderChangeCommand}" FontWeight="SemiBold" />
@@ -326,6 +326,33 @@
                                     <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Star}" /></Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
+                            <DataGridTemplateColumn x:Name="ChangesImageColumn" Header="" Width="56" CanUserSort="False" CanUserResize="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Width="42" Height="42" CornerRadius="4" Background="White" BorderBrush="#E6E9E3" BorderThickness="1"
+                                                ToolTipService.InitialShowDelay="250" ToolTipService.ShowDuration="20000">
+                                            <Border.ToolTip>
+                                                <ToolTip Padding="8" Background="White" BorderBrush="#D9DDD5">
+                                                    <StackPanel Width="240">
+                                                        <Grid Height="240">
+                                                            <TextBlock Text="Loading image…" Foreground="#8A928D" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                            <Image views:Thumb.Size="320" views:Thumb.Image="{Binding Image}" Stretch="Uniform"
+                                                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                                        </Grid>
+                                                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                                        <TextBlock Text="{Binding StoreName}" Foreground="#66706A" />
+                                                    </StackPanel>
+                                                </ToolTip>
+                                            </Border.ToolTip>
+                                            <Grid>
+                                                <TextBlock Text="🌿" Opacity="0.3" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Image views:Thumb.Size="84" views:Thumb.Image="{Binding Image}" Stretch="Uniform" Margin="1"
+                                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="When" Binding="{Binding When}" SortMemberPath="At" Width="120" />
                             <DataGridTextColumn Header="Change" Binding="{Binding Kind}" Width="110" FontWeight="SemiBold" />
                             <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="95" />
