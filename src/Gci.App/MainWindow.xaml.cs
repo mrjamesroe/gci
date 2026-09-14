@@ -16,8 +16,8 @@ public partial class MainWindow : Window
         InitializeComponent();
         _vm = vm;
         DataContext = vm;
-        vm.ShowWatchEditor = editor => new WatchEditorWindow(editor) { Owner = this }.ShowDialog() == true;
-        vm.ShowPhoneSetup = setup => new PhoneSetupWindow(setup) { Owner = this }.ShowDialog();
+        vm.ShowWatchEditor = editor => Task.FromResult(new WatchEditorWindow(editor) { Owner = this }.ShowDialog() == true);
+        vm.ShowPhoneSetup = setup => { new PhoneSetupWindow(setup) { Owner = this }.ShowDialog(); return Task.CompletedTask; };
         vm.ShowPreorder = preorder =>
         {
             // One Preorder window, reused, so a store sign-in stays put; not owned, so it can stay open with GCI in the tray.
@@ -30,7 +30,7 @@ public partial class MainWindow : Window
             _preorder.Closed += (_, _) => _preorder = null;
             _preorder.Show();
         };
-        vm.Confirm = message => MessageBox.Show(this, message, "GCI", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+        vm.Confirm = message => Task.FromResult(MessageBox.Show(this, message, "GCI", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes);
         ApplyImageSetting();
         vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(MainViewModel.ShowImages)) ApplyImageSetting(); };
     }
