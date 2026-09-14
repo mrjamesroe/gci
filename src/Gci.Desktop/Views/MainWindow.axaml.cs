@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
@@ -20,9 +22,27 @@ public partial class MainWindow : Window
         vm.Confirm = message => Dialogs.ConfirmAsync(this, message);
         // ShowPreorder is left unset until the WKWebView-backed Preorder window lands (Phase 4);
         // the VM then falls back to opening the store page in the default browser.
+
+        ApplyImageSetting();
+        vm.PropertyChanged += OnVmPropertyChanged;
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.ShowImages)) ApplyImageSetting();
+    }
+
+    /// <summary>DataGrid columns aren't in the visual tree, so the image column is toggled here rather than bound.</summary>
+    private void ApplyImageSetting()
+    {
+        if (_vm is null || this.FindControl<DataGrid>("InventoryGrid") is not { } grid) return;
+        var on = _vm.ShowImages;
+        if (grid.Columns.OfType<DataGridTemplateColumn>().FirstOrDefault() is { } imageColumn)
+            imageColumn.IsVisible = on;
+        grid.RowHeight = on ? 48 : 30;
+    }
 
     private void OnItemDoubleTapped(object? sender, TappedEventArgs e) => Run(_vm?.OpenProductCommand);
     private void OnWatchDoubleTapped(object? sender, TappedEventArgs e) => Run(_vm?.EditWatchCommand, _vm?.SelectedWatch);
