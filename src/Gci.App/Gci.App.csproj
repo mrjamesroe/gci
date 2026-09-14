@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Gci.Core\Gci.Core.csproj" />
+    <ProjectReference Include="..\Gci.Presentation\Gci.Presentation.csproj" />
   </ItemGroup>
 
   <ItemGroup>
