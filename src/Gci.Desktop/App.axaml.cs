@@ -32,8 +32,11 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             _desktop = desktop;
-            // A tray icon keeps GCI monitoring after the window is closed, so we drive shutdown ourselves.
-            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            // macOS: a menu-bar tray plus a lingering Dock icon reads as a "ghost", and closing a window is expected
+            // to leave nothing behind — so there, closing quits (default OnLastWindowClose) and there's no tray. On
+            // Windows we keep the tray and drive shutdown ourselves so it can go on monitoring after the window closes.
+            var useTray = !OperatingSystem.IsMacOS();
+            if (useTray) desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             var args = desktop.Args ?? [];
 
             // --data <folder> keeps a separate profile (handy for testing); default is the per-user app-data folder.
@@ -56,12 +59,16 @@ public partial class App : Application
             _window = new MainWindow(_vm);
             desktop.MainWindow = _window;
             desktop.ShutdownRequested += (_, _) => Teardown();
-            SetupTray(_vm);
 
-            var startHidden = args.Contains("--minimized") || _vm.Settings.StartMinimized;
-            if (startHidden)
-                _window.Opened += HideOnFirstOpen; // shown once by the lifetime, then tucked into the tray
-            _vm.TrayStatusChanged += status => { if (_tray is not null) _tray.ToolTipText = status; };
+            var startHidden = false;
+            if (useTray)
+            {
+                SetupTray(_vm);
+                startHidden = args.Contains("--minimized") || _vm.Settings.StartMinimized;
+                if (startHidden)
+                    _window.Opened += HideOnFirstOpen; // shown once by the lifetime, then tucked into the tray
+                _vm.TrayStatusChanged += status => { if (_tray is not null) _tray.ToolTipText = status; };
+            }
 
             _vm.RecordLaunch(startHidden ? "minimized" : "normal");
             // Let the window paint before the first (network) refresh.

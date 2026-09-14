@@ -33,14 +33,18 @@ public partial class MainWindow : Window
 
         ApplyImageSetting();
         vm.PropertyChanged += OnVmPropertyChanged;
+
+        // The "keep running in the menu bar / start minimized" options only apply where there's a tray (not macOS).
+        if (this.FindControl<Border>("WindowSettingsCard") is { } card) card.IsVisible = !OperatingSystem.IsMacOS();
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 
-    // Closing the window keeps GCI running in the tray/menu bar when the setting is on; the tray's Exit sets AllowClose.
+    // On Windows, closing keeps GCI running in the tray when the setting is on (the tray's Exit sets AllowClose).
+    // On macOS there's no tray, so closing quits — nothing lingers in the Dock.
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        if (!AllowClose && _vm?.MinimizeToTray == true)
+        if (!AllowClose && _vm?.MinimizeToTray == true && !OperatingSystem.IsMacOS())
         {
             e.Cancel = true;
             Hide();

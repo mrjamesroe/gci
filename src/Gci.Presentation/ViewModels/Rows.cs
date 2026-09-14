@@ -95,10 +95,12 @@ public sealed partial class WatchRow(WatchRule rule, Func<string, string?> store
     }
 }
 
-public sealed class ChangeRow(ChangeEvent e, bool watched)
+public sealed class ChangeRow(ChangeEvent e, bool watched, ImageRef? fallbackImage = null)
 {
     public ChangeEvent Event { get; } = e;
-    public ImageRef? Image { get; } = e.ImageUrl is { } url ? new ImageRef(e.ItemKey, url, e.ThumbnailUrl) : null;
+    // Newer change events carry the image; older ones (recorded before that) fall back to the product's current
+    // inventory image when it's still listed.
+    public ImageRef? Image { get; } = e.ImageUrl is { } url ? new ImageRef(e.ItemKey, url, e.ThumbnailUrl) : fallbackImage;
     public bool Watched { get; } = watched;
     public string WatchMark => Watched ? "★" : "";
     public DateTimeOffset At => Event.At;

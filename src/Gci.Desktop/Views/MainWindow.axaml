@@ -427,7 +427,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="card">
+                        <Border x:Name="WindowSettingsCard" Classes="card">
                             <StackPanel>
                                 <TextBlock Text="Window" Classes="section" Margin="0,0,0,6" />
                                 <CheckBox Content="Closing the window keeps GCI running in the menu bar" IsChecked="{Binding MinimizeToTray}" />
