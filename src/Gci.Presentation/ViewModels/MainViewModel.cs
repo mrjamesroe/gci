@@ -74,6 +74,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _startMinimized = Settings.StartMinimized;
         _showImages = Settings.ShowImages;
         _checkForUpdates = Settings.CheckForUpdates;
+        _theme = Settings.Theme;
         _showWelcome = !Settings.FirstRunComplete;
 
         CategoryOptions = new[] { new Option<ProductCategory?>(null, "All categories") }
@@ -182,6 +183,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _showImages;
     [ObservableProperty] private string _imagesStatusText = "";
     [ObservableProperty] private string _settingsMessage = "";
+
+    // ---- Appearance ---------------------------------------------------------------------------
+
+    public IReadOnlyList<AppTheme> ThemeOptions { get; } = Enum.GetValues<AppTheme>();
+    [ObservableProperty] private AppTheme _theme;
+
+    /// <summary>Set by the view to apply the chosen theme to its platform (WPF resource swap / Avalonia variant).</summary>
+    public Action<AppTheme>? ApplyTheme { get; set; }
+
+    partial void OnThemeChanged(AppTheme value)
+    {
+        Settings.Theme = value;
+        SaveSettings();
+        ApplyTheme?.Invoke(value);
+        TrackSetting("theme", value.ToString());
+    }
 
     partial void OnShowImagesChanged(bool value) { Settings.ShowImages = value; SaveSettings(); TrackSetting("show_images", value); }
 

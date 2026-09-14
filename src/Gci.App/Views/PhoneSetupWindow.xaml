@@ -47,7 +47,7 @@
                     <Run FontWeight="SemiBold" Text="iPhone:" />
                     <Run Text="open ntfy, tap +, and enter this topic:" />
                 </TextBlock>
-                <Border Background="{StaticResource AccentSoft}" CornerRadius="6" Padding="12,8" Margin="0,8,0,0">
+                <Border Background="{DynamicResource AccentSoft}" CornerRadius="6" Padding="12,8" Margin="0,8,0,0">
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Content="Copy" Command="{Binding CopyTopicCommand}" Margin="8,0,0,0" />
                         <TextBlock Text="{Binding TopicName}" FontFamily="Consolas" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"

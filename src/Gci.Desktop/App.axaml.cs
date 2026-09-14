@@ -4,8 +4,10 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Gci.App.ViewModels;
+using Gci.Core.Models;
 using Gci.Core.Providers;
 using Gci.Core.Services;
 using Gci.Desktop.Services;
@@ -56,6 +58,9 @@ public partial class App : Application
                 _feeds, _updates, _telemetry, new NoopEmbeddedBrowser(), new NoopUpdateInstaller(), new NoopStartupRegistration(),
                 new DesktopSystemSnapshot(), new DesktopClipboard(), new DesktopTicker(TimeSpan.FromSeconds(15)), args);
 
+            _vm.ApplyTheme = ApplyThemeVariant;
+            ApplyThemeVariant(_vm.Settings.Theme);
+
             _window = new MainWindow(_vm);
             desktop.MainWindow = _window;
             desktop.ShutdownRequested += (_, _) => Teardown();
@@ -77,6 +82,13 @@ public partial class App : Application
 
         base.OnFrameworkInitializationCompleted();
     }
+
+    private void ApplyThemeVariant(AppTheme theme) => RequestedThemeVariant = theme switch
+    {
+        AppTheme.Light => ThemeVariant.Light,
+        AppTheme.Dark => ThemeVariant.Dark,
+        _ => ThemeVariant.Default, // follow the OS
+    };
 
     private void HideOnFirstOpen(object? sender, EventArgs e)
     {

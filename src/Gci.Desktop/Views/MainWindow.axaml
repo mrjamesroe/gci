@@ -402,6 +402,17 @@
                     <StackPanel Margin="0,12,0,16" MaxWidth="760" HorizontalAlignment="Left" Spacing="12">
                         <Border Classes="card">
                             <StackPanel>
+                                <TextBlock Text="Appearance" Classes="section" Margin="0,0,0,6" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <ComboBox MinWidth="140" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" />
+                                </StackPanel>
+                                <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,8,0,0" Text="System follows your Mac's light/dark appearance." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
+                            <StackPanel>
                                 <TextBlock Text="Automatic refresh" Classes="section" Margin="0,0,0,6" />
                                 <CheckBox Content="Refresh automatically" IsChecked="{Binding AutoRefresh}" />
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
