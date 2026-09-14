@@ -106,16 +106,16 @@
             </DockPanel>
         </Border>
 
-        <!-- Usage statistics consent (nothing is sent until answered) -->
+        <!-- Detailed usage opt-in (the basic anonymous install ping is already on; see Settings to turn it off) -->
         <Border Background="#EEF3FB" BorderBrush="#CFDCF0" BorderThickness="0,0,0,1" Padding="20,10"
                 Visibility="{Binding ShowTelemetryBanner, Converter={StaticResource BoolToVis}}">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="What's collected" Command="{Binding OpenPrivacyCommand}" Margin="8,0,0,0" />
                 <Button DockPanel.Dock="Right" Content="No thanks" Command="{Binding DeclineTelemetryCommand}" />
-                <Button DockPanel.Dock="Right" Content="Share anonymous stats" Style="{StaticResource PrimaryButton}" Command="{Binding AcceptTelemetryCommand}" />
+                <Button DockPanel.Dock="Right" Content="Share detailed usage" Style="{StaticResource PrimaryButton}" Command="{Binding AcceptTelemetryCommand}" />
                 <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0">
-                    <Run FontWeight="SemiBold" Text="Help improve GCI?" />
-                    <Run Text="Share anonymous usage statistics: which stores you monitor, which products you open or get alerts for, the kinds of watches you set up, settings, and error reports. Never your patient details, your name, or text you type. You can change this anytime in Settings." />
+                    <Run FontWeight="SemiBold" Text="Share detailed usage to help improve GCI?" />
+                    <Run Text="GCI already counts anonymous installs (version and OS only, no personal data). Optionally also share what's useful: which stores you monitor, products you open or get alerts for, the kinds of watches you set, settings and errors. Never your patient details, your name, or text you type. Change either anytime in Settings." />
                 </TextBlock>
             </DockPanel>
         </Border>
@@ -667,14 +667,19 @@
                         <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Usage statistics" Style="{StaticResource SectionTitle}" />
-                                <CheckBox Content="Share anonymous usage statistics to help improve GCI" IsChecked="{Binding ShareUsageStats}"
+                                <CheckBox Content="Count this install (anonymous: app version, Windows version, and a random id — no personal data)"
+                                          IsChecked="{Binding BasicTelemetry}" IsEnabled="{Binding TelemetryAvailable}" />
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,4,0,10">
+                                    On by default so GCI's author can see how many people use it and which versions are running. It sends only the app and
+                                    Windows version plus a random install id — never your patient details, activity, or anything that identifies you.
+                                </TextBlock>
+                                <CheckBox Content="Also share detailed usage to help improve GCI" IsChecked="{Binding ShareUsageStats}"
                                           IsEnabled="{Binding TelemetryAvailable}" />
                                 <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,8,0,0">
-                                    Sent to Aptabase, a privacy-focused analytics service: app version and Windows details, settings, which stores you
-                                    monitor, products you open or get alerts for (names and prices from the stores' public menus), the kinds of watches
-                                    you create (recognized product terms like "crumble" only, never your own wording), news posts you open, store errors
-                                    and crash reports. Never your patient details, your name, anything you type, or your ntfy topic. Aptabase records
-                                    country and state from your connection but doesn't store your IP address.
+                                    Optional, opt-in. Adds: settings, which stores you monitor, products you open or get alerts for (names and prices from
+                                    the stores' public menus), the kinds of watches you create (recognized product terms like "crumble" only, never your own
+                                    wording), news posts you open, store errors and crash reports. Never your patient details, your name, anything you type,
+                                    or your ntfy topic. Both tiers go to Aptabase, which records country and state from your connection but not your IP.
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                     <Button Content="See exactly what's been sent" Command="{Binding ViewTelemetryLogCommand}" />

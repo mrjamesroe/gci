@@ -21,10 +21,19 @@ public sealed class AppSettings
     public bool ShowImages { get; set; } = true;
     public bool CheckForUpdates { get; set; } = true;
 
-    /// <summary>Anonymous usage statistics: null = not asked yet (nothing is sent), then the user's choice.</summary>
+    /// <summary>
+    /// Detailed, opt-in usage stats: null = not asked yet (the banner still shows), then the user's choice. The basic
+    /// anonymous install ping (<see cref="BasicTelemetry"/>) is separate and does not wait on this.
+    /// </summary>
     public bool? ShareUsageStats { get; set; }
+    /// <summary>The anonymous install ping. On by default; the user can turn it off in Settings.</summary>
+    public bool BasicTelemetry { get; set; } = true;
+    /// <summary>Random, local, non-identifying id so installs and retention can be counted. Generated once.</summary>
+    public string? InstallId { get; set; }
     public DateTimeOffset? InstallDate { get; set; }
     public int LaunchCount { get; set; }
+    /// <summary>Local date the daily "still active" ping last fired, so it fires at most once per day.</summary>
+    public string? LastActivePing { get; set; }
     public string? LastRunVersion { get; set; }
     public string? LastSummaryDay { get; set; }
     public DateTimeOffset? LastUpdateCheck { get; set; }

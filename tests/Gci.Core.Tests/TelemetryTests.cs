@@ -12,7 +12,7 @@ public sealed class TelemetryTests : IDisposable
     private static readonly TelemetrySystemInfo System = new("10.0.26100", "en-US", "1.1.0", "abc1234", "X64", IsDebug: true);
 
     private TelemetryClient NewClient(bool enabled = true) =>
-        new(new DataStore(_root), System, TelemetryClient.DefaultAppKey, _server, () => _now) { Enabled = enabled };
+        new(new DataStore(_root), System, TelemetryClient.DefaultAppKey, _server, () => _now) { DetailedEnabled = enabled };
 
     [Fact]
     public async Task Nothing_is_queued_or_sent_without_consent()
@@ -21,7 +21,7 @@ public sealed class TelemetryTests : IDisposable
         client.Track("app_started");
         client.Increment("refreshes");
         client.TrackError(new InvalidOperationException("boom"), "handled");
-        client.Enabled = true;
+        client.DetailedEnabled = true;
         await client.FlushAsync();
 
         Assert.Empty(_server.Requests);
@@ -112,8 +112,8 @@ public sealed class TelemetryTests : IDisposable
     {
         using var client = NewClient();
         client.Track("pending");
-        client.Enabled = false;
-        client.Enabled = true;
+        client.DetailedEnabled = false;
+        client.DetailedEnabled = true;
         await client.FlushAsync();
         Assert.Empty(_server.Requests);
     }
@@ -197,9 +197,9 @@ public sealed class TelemetryTests : IDisposable
     [Fact]
     public void Invalid_app_keys_disable_sending()
     {
-        using var client = new TelemetryClient(new DataStore(_root), System, "not-a-key", _server) { Enabled = true };
+        using var client = new TelemetryClient(new DataStore(_root), System, "not-a-key", _server) { DetailedEnabled = true };
         Assert.False(client.IsConfigured);
-        Assert.False(client.Enabled);
+        Assert.False(client.DetailedEnabled);
     }
 
     [Fact]
@@ -223,18 +223,19 @@ public sealed class TelemetryTests : IDisposable
     {
         try { Directory.Delete(_root, recursive: true); } catch (IOException) { }
     }
+}
 
-    private sealed class FakeAptabase : HttpMessageHandler
+/// <summary>Captures the requests a <see cref="TelemetryClient"/> would send to Aptabase.</summary>
+internal sealed class FakeAptabase : HttpMessageHandler
+{
+    public HttpStatusCode Status { get; set; } = HttpStatusCode.OK;
+    public List<(string Url, string? AppKey, string Body, HttpStatusCode Status)> Requests { get; } = new();
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
-        public HttpStatusCode Status { get; set; } = HttpStatusCode.OK;
-        public List<(string Url, string? AppKey, string Body, HttpStatusCode Status)> Requests { get; } = new();
-
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-        {
-            var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(ct);
-            var key = request.Headers.TryGetValues("App-Key", out var v) ? v.First() : null;
-            lock (Requests) Requests.Add((request.RequestUri!.ToString(), key, body, Status));
-            return new HttpResponseMessage(Status) { Content = new StringContent("{}") };
-        }
+        var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(ct);
+        var key = request.Headers.TryGetValues("App-Key", out var v) ? v.First() : null;
+        lock (Requests) Requests.Add((request.RequestUri!.ToString(), key, body, Status));
+        return new HttpResponseMessage(Status) { Content = new StringContent("{}") };
     }
 }

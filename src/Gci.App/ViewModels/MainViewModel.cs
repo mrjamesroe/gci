@@ -228,6 +228,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         IsRefreshing = true;
         Progress = 0;
         _refreshCts = new CancellationTokenSource();
+        TrackActivePing(); // keeps a long-running install counted as active day to day
         try
         {
             await EnsureStoresAsync(force: false);

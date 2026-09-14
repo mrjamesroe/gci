@@ -11,10 +11,11 @@ namespace Gci.Core.Services;
 public sealed record TelemetrySystemInfo(string OsVersion, string Locale, string AppVersion, string? AppBuildNumber, string DeviceModel, bool IsDebug);
 
 /// <summary>
-/// Opt-in, anonymous usage telemetry sent to Aptabase (aptabase.com). Nothing is queued or sent unless
-/// <see cref="Enabled"/> is true; turning it off discards anything pending. Every value passes through
-/// <see cref="TelemetryScrubber"/>, events are batched (25 per request, Aptabase's limit), and a daily cap keeps
-/// usage inside the free tier. A local log of everything sent is kept for the user to inspect.
+/// Anonymous usage telemetry sent to Aptabase (aptabase.com), in two tiers: a <see cref="BasicEnabled"/> install ping
+/// that is on by default (version, OS and a random install id only), and <see cref="DetailedEnabled"/> opt-in usage for
+/// everything else. Every value passes through <see cref="TelemetryScrubber"/>, events are batched (25 per request,
+/// Aptabase's limit), and a daily cap keeps usage inside the free tier. A local log of everything sent is kept for the
+/// user to inspect.
 /// </summary>
 public sealed class TelemetryClient : IDisposable
 {
@@ -41,7 +42,8 @@ public sealed class TelemetryClient : IDisposable
     private string _sessionId;
     private DateTimeOffset _sessionStarted;
     private DateTimeOffset _lastTouched;
-    private bool _enabled;
+    private bool _basic;
+    private bool _detailed;
 
     public TelemetryClient(DataStore data, TelemetrySystemInfo system, string? appKey = DefaultAppKey,
         HttpMessageHandler? handler = null, Func<DateTimeOffset>? clock = null)
@@ -62,31 +64,63 @@ public sealed class TelemetryClient : IDisposable
     /// <summary>False when no valid app key is configured; telemetry then never sends.</summary>
     public bool IsConfigured => _baseUrl is not null;
 
-    /// <summary>The user's consent. Turning it off drops anything queued.</summary>
-    public bool Enabled
+    /// <summary>
+    /// The anonymous install ping (<c>app_started</c> / <c>app_active</c>): the one tier that sends without opt-in.
+    /// It carries only version, OS and a random install id — no behaviour, no personal data. On by default; turning it
+    /// off drops any basic events still queued.
+    /// </summary>
+    public bool BasicEnabled
     {
-        get => _enabled && IsConfigured;
+        get => _basic && IsConfigured;
         set
         {
             lock (_lock)
             {
-                _enabled = value;
+                _basic = value;
+                if (!value) { _state.Queue.RemoveAll(e => e.Tier == EventTier.Basic); Save(); }
+            }
+        }
+    }
+
+    /// <summary>Detailed, opt-in usage (everything else). Turning it off drops anything detailed still queued.</summary>
+    public bool DetailedEnabled
+    {
+        get => _detailed && IsConfigured;
+        set
+        {
+            lock (_lock)
+            {
+                _detailed = value;
                 if (!value)
                 {
-                    _state.Queue.Clear();
+                    _state.Queue.RemoveAll(e => e.Tier == EventTier.Detailed);
                     _state.Counters.Clear();
+                    _state.Once.Clear();
                     Save();
                 }
             }
         }
     }
 
+    /// <summary>True when any tier is on and configured, so the flusher should run.</summary>
+    private bool AnySink => IsConfigured && (_basic || _detailed);
+
     public string LogPath => _data.PathFor(LogFileName);
 
-    /// <summary>Queues an event. Values may be strings, numbers or booleans; everything else is stringified.</summary>
+    /// <summary>Queues a detailed (opt-in) event. Values may be strings, numbers or booleans; everything else is stringified.</summary>
     public void Track(string name, IReadOnlyDictionary<string, object?>? props = null)
     {
-        if (!Enabled) return;
+        if (DetailedEnabled) Enqueue(name, props, EventTier.Detailed);
+    }
+
+    /// <summary>Queues an anonymous basic-tier event (the install ping). Sent whenever <see cref="BasicEnabled"/> is on.</summary>
+    public void TrackBasic(string name, IReadOnlyDictionary<string, object?>? props = null)
+    {
+        if (BasicEnabled) Enqueue(name, props, EventTier.Basic);
+    }
+
+    private void Enqueue(string name, IReadOnlyDictionary<string, object?>? props, EventTier tier)
+    {
         var now = _clock();
         lock (_lock)
         {
@@ -102,7 +136,7 @@ public sealed class TelemetryClient : IDisposable
                 return;
             }
             _state.SentToday++;
-            _state.Queue.Add(new QueuedEvent(now, TelemetryScrubber.EventName(name), SessionId(now), TelemetryScrubber.Props(props), null));
+            _state.Queue.Add(new QueuedEvent(now, TelemetryScrubber.EventName(name), SessionId(now), TelemetryScrubber.Props(props), null, tier));
             Save();
         }
     }
@@ -110,7 +144,7 @@ public sealed class TelemetryClient : IDisposable
     /// <summary>Tracks the event only if <paramref name="key"/> hasn't been tracked within <paramref name="period"/>.</summary>
     public bool TrackOnce(string key, TimeSpan period, string name, IReadOnlyDictionary<string, object?>? props = null)
     {
-        if (!Enabled) return false;
+        if (!DetailedEnabled) return false;
         var now = _clock();
         lock (_lock)
         {
@@ -126,7 +160,7 @@ public sealed class TelemetryClient : IDisposable
     /// <summary>Tracks at most <paramref name="perDay"/> events named <paramref name="name"/> per day (the rest are counted).</summary>
     public bool TrackLimited(string name, int perDay, IReadOnlyDictionary<string, object?>? props = null)
     {
-        if (!Enabled) return false;
+        if (!DetailedEnabled) return false;
         var key = $"limit:{name}:{Day(_clock())}";
         lock (_lock)
         {
@@ -145,7 +179,7 @@ public sealed class TelemetryClient : IDisposable
     /// <summary>Adds to a counter reported (and reset) by the next daily summary.</summary>
     public void Increment(string counter, double by = 1)
     {
-        if (!Enabled) return;
+        if (!DetailedEnabled) return;
         lock (_lock) Bump(counter, by);
     }
 
@@ -167,7 +201,7 @@ public sealed class TelemetryClient : IDisposable
     /// <summary>Reports an exception to Aptabase's error endpoint with the message and stack trace scrubbed.</summary>
     public void TrackError(Exception ex, string kind, bool fatal = false)
     {
-        if (!Enabled) return;
+        if (!DetailedEnabled) return;
         var signature = $"{ex.GetType().Name}:{TelemetryScrubber.TopFrame(ex)}";
         if (!TrackOnceSilently($"error:{signature}", TimeSpan.FromDays(1))) return;
         var now = _clock();
@@ -189,7 +223,7 @@ public sealed class TelemetryClient : IDisposable
         lock (_lock)
         {
             error["sessionId"] = SessionId(now);
-            _state.Queue.Add(new QueuedEvent(now, "$error", null, null, error.ToJsonString()));
+            _state.Queue.Add(new QueuedEvent(now, "$error", null, null, error.ToJsonString(), EventTier.Detailed));
             Save();
         }
         if (fatal) FlushAsync().Wait(TimeSpan.FromSeconds(3));
@@ -198,7 +232,7 @@ public sealed class TelemetryClient : IDisposable
     /// <summary>Sends queued events. Server errors and outages keep them for the next attempt; rejected batches are dropped.</summary>
     public async Task FlushAsync(CancellationToken ct = default)
     {
-        if (!Enabled) return;
+        if (!AnySink) return;
         if (!await _flushGate.WaitAsync(0, ct).ConfigureAwait(false)) return;
         try
         {
@@ -284,6 +318,7 @@ public sealed class TelemetryClient : IDisposable
                 {
                     sent = _clock().UtcDateTime.ToString("o"),
                     status,
+                    tier = e.Tier == EventTier.Basic ? "basic" : "detailed",
                     @event = e.Name,
                     at = e.At.UtcDateTime.ToString("o"),
                     props = e.Props,
@@ -355,7 +390,9 @@ public sealed class TelemetryClient : IDisposable
         _http.Dispose();
     }
 
-    internal sealed record QueuedEvent(DateTimeOffset At, string Name, string? SessionId, Dictionary<string, object>? Props, string? ErrorJson);
+    internal enum EventTier { Detailed, Basic }  // Detailed = 0 so events queued before this version stay detailed
+
+    internal sealed record QueuedEvent(DateTimeOffset At, string Name, string? SessionId, Dictionary<string, object>? Props, string? ErrorJson, EventTier Tier = EventTier.Detailed);
 
     internal sealed class State
     {

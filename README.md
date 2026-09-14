@@ -132,17 +132,25 @@ date to remind you daily in the last 30 days.
 
 ## Privacy
 
-GCI asks once whether you'd like to share **anonymous usage statistics**. Nothing is collected or sent until you
-answer, and you can change your mind anytime under **Settings → Usage statistics** (turning it off discards anything
-not yet sent). **Settings → See exactly what's been sent** opens a local log of every event.
+Usage data comes in two tiers, both anonymous and both sent to [Aptabase](https://aptabase.com), a privacy-focused
+analytics service that derives country and state from the connection and computes a daily-rotating visitor hash but
+**never stores your IP address**. **Settings → Usage statistics** controls both, and **See exactly what's been sent**
+opens a local log of every event (each line marked `basic` or `detailed`).
 
-If you opt in, events go to [Aptabase](https://aptabase.com), a privacy-focused analytics service. Aptabase derives
-country and state from the connection and computes an anonymous visitor hash, but doesn't store IP addresses. GCI
-sends:
+**Basic — anonymous install ping (on by default).** So the author can see how many people use GCI and which versions
+are live, GCI sends `app_started` when it launches and `app_active` once a day while running. These carry only: GCI
+version, Windows version/build, CPU architecture, .NET version, a **random install id** generated once locally (it lets
+installs and retention be counted; it is not derived from you or your PC and ties to nothing about you), install week
+and launch count. No activity, no settings, nothing that identifies you. You can turn this off in Settings — GCI is
+free and this is the one thing it asks in return, but the choice is yours.
+
+**Detailed — everything else (opt-in).** GCI asks once, on the banner, and nothing detailed is sent unless you say yes;
+turning it off later discards anything not yet sent. If you opt in, `app_started` also carries your settings and counts,
+and GCI additionally sends:
 
 | Event | What it contains |
 |---|---|
-| `app_started`, `session_ended` | GCI version, Windows version/build, Edge WebView2 major version (or none), CPU count, RAM, screen size and scaling, language, time zone, dark mode, where the exe lives (a category like "documents", never a path), settings (refresh interval, notifications on/off, whether phone push is set up), counts of watches/stores/feeds, whether a patient profile exists and a card-expiry bucket (e.g. "under 30 days"), install week and launch count |
+| `app_started` (detailed extras), `session_ended` | Edge WebView2 major version (or none), CPU count, RAM, screen size and scaling, language, time zone, dark mode, where the exe lives (a category like "documents", never a path), settings (refresh interval, notifications on/off, whether phone push is set up), counts of watches/stores/feeds, whether a patient profile exists and a card-expiry bucket (e.g. "under 30 days") |
 | `daily_summary` | Once a day: which stores you monitor (one flag per store), how many watches and what kinds, items in stock by category, refresh counts/timings/failures, which menu hosts needed curl or WebView2, alerts sent, news and image-cache counts |
 | `alert_sent`, `product_opened`, `store_menu_opened` | The store, operator, product name, brand, size, price and stock level (all from the stores' public menus) |
 | `watch_saved`, `watch_deleted`, `watch_toggled` | Category, operator, store scope, price/low-stock settings, and **only recognized product terms** from keywords ("crumble", "live rosin", …); anything else you type is counted, never sent. "Watch this product" sends the product's public name |
@@ -154,9 +162,11 @@ sends:
 | `update_*`, `app_upgraded` | Version numbers and whether updating succeeded |
 | `phone_setup_*`, `phone_nudge_dismissed` | Whether phone alerts were set up, whether the test push worked, and whether the server is the public ntfy.sh (never the topic name) |
 
-**Never sent to Aptabase:** your patient details (name, date of birth, card number, card dates, phone, email, caregiver), watch names or any
-free text you type, search text, your ntfy topic, file paths, or anything that identifies you or your PC. Volume is
-capped at 150 events per day per install.
+**Never sent to Aptabase (either tier):** your patient details (name, date of birth, card number, card dates, phone, email, caregiver), watch names or any
+free text you type, search text, your ntfy topic, file paths, or anything that identifies you or your PC. The install id is random and anonymous.
+Volume is capped at 150 events per day per install.
+
+GitHub also reports, to the repository owner only, anonymous release **download counts** and 14-day clone/view traffic — standard for any public repo, independent of the app.
 
 ## Phone alerts
 
