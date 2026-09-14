@@ -306,9 +306,15 @@ public sealed class ProviderHttp : IDisposable
 
     private static string? FindCurl()
     {
-        if (!OperatingSystem.IsWindows()) return null;
-        var path = Path.Combine(Environment.SystemDirectory, "curl.exe");
-        return File.Exists(path) ? path : null;
+        if (OperatingSystem.IsWindows())
+        {
+            var win = Path.Combine(Environment.SystemDirectory, "curl.exe");
+            return File.Exists(win) ? win : null;
+        }
+        // macOS ships curl at /usr/bin/curl; also check common Homebrew and Linux locations.
+        foreach (var path in new[] { "/usr/bin/curl", "/usr/local/bin/curl", "/opt/homebrew/bin/curl", "/bin/curl" })
+            if (File.Exists(path)) return path;
+        return null;
     }
 
     public void Dispose() => _client.Dispose();

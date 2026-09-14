@@ -43,3 +43,31 @@ jobs:
         run: |
           gh release create '${{ github.ref_name }}' publish/gci.exe publish/gci.exe.sha256 `
             --title 'GCI ${{ github.ref_name }}' --notes-from-tag --verify-tag
+
+  # Proves the cross-platform (Avalonia) app compiles and Gci.Core passes on macOS every build. It does not yet attach
+  # Mac assets to releases; that happens once the Avalonia UI reaches parity and the WPF app retires.
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+
+      # The WPF app (Gci.App) is Windows-only, so build just the portable pieces here, not the whole solution.
+      - name: Test Gci.Core on macOS
+        run: dotnet test tests/Gci.Core.Tests -c Release
+
+      - name: Build the cross-platform app for macOS (arm64 + x64)
+        run: |
+          dotnet publish src/Gci.Desktop -c Release -r osx-arm64 --self-contained -o build/osx-arm64
+          dotnet publish src/Gci.Desktop -c Release -r osx-x64  --self-contained -o build/osx-x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gci-macos
+          path: |
+            build/osx-arm64/gci
+            build/osx-x64/gci
+          if-no-files-found: error
