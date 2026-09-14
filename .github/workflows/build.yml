@@ -64,10 +64,12 @@ jobs:
           dotnet publish src/Gci.Desktop -c Release -r osx-arm64 --self-contained -o build/osx-arm64
           dotnet publish src/Gci.Desktop -c Release -r osx-x64  --self-contained -o build/osx-x64
 
+      # Upload the whole self-contained folders so the artifact actually runs (unzip, chmod +x gci, ./gci).
+      # A signed .app bundle + zip comes in Phase 5; for now Gatekeeper must be cleared by hand.
       - uses: actions/upload-artifact@v4
         with:
           name: gci-macos
           path: |
-            build/osx-arm64/gci
-            build/osx-x64/gci
+            build/osx-arm64
+            build/osx-x64
           if-no-files-found: error
