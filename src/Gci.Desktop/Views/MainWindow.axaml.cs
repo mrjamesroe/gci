@@ -11,6 +11,9 @@ public partial class MainWindow : Window
 {
     private MainViewModel? _vm;
 
+    /// <summary>True once the user chose Exit from the tray, so closing really quits.</summary>
+    public bool AllowClose { get; set; }
+
     public MainWindow() => InitializeComponent();
 
     public MainWindow(MainViewModel vm) : this()
@@ -28,6 +31,18 @@ public partial class MainWindow : Window
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+
+    // Closing the window keeps GCI running in the tray/menu bar when the setting is on; the tray's Exit sets AllowClose.
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        if (!AllowClose && _vm?.MinimizeToTray == true)
+        {
+            e.Cancel = true;
+            Hide();
+            return;
+        }
+        base.OnClosing(e);
+    }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

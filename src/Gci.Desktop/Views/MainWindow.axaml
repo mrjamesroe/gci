@@ -7,6 +7,7 @@
         Width="1320" Height="820" MinWidth="960" MinHeight="560"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource Ground}"
+        Icon="/Assets/gci.ico"
         Title="GCI — Georgia Cannabis Inventory">
 
     <Window.KeyBindings>
@@ -388,6 +389,14 @@
                                     <Button Content="Send test notification" Command="{Binding TestNotificationCommand}" />
                                     <TextBlock Text="{Binding SettingsMessage}" Classes="muted" VerticalAlignment="Center" />
                                 </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
+                            <StackPanel>
+                                <TextBlock Text="Window" Classes="section" Margin="0,0,0,6" />
+                                <CheckBox Content="Closing the window keeps GCI running in the menu bar" IsChecked="{Binding MinimizeToTray}" />
+                                <CheckBox Content="Start minimized to the menu bar" IsChecked="{Binding StartMinimized}" Margin="0,8,0,0" />
                             </StackPanel>
                         </Border>
 
