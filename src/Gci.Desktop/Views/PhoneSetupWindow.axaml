@@ -6,7 +6,7 @@
         x:CompileBindings="False"
         Width="780" Height="600" MinWidth="680" MinHeight="540"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        Background="{StaticResource Ground}"
+        Background="{DynamicResource Ground}"
         Title="Phone alerts">
     <Grid Margin="24,20" RowDefinitions="Auto,*,Auto">
 
@@ -27,7 +27,7 @@
 
                 <TextBlock Text="2. Subscribe to your private topic" Classes="section" Margin="0,18,0,6" />
                 <TextBlock TextWrapping="Wrap" Text="Android: scan the QR code with your camera. iPhone: open ntfy, tap +, and enter this topic:" />
-                <Border Background="{StaticResource AccentSoft}" CornerRadius="6" Padding="12,8" Margin="0,8,0,0">
+                <Border Background="{DynamicResource AccentSoft}" CornerRadius="6" Padding="12,8" Margin="0,8,0,0">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Grid.Column="0" Text="{Binding TopicName}" FontFamily="monospace" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" />
                         <Button Grid.Column="1" Content="Copy" Command="{Binding CopyTopicCommand}" Margin="8,0,0,0" />

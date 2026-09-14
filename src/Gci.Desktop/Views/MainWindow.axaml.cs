@@ -1,14 +1,19 @@
 using System.ComponentModel;
 using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using Gci.App.ViewModels;
+using Gci.Core.Models;
 
 namespace Gci.Desktop.Views;
 
 public partial class MainWindow : Window
 {
+    private static readonly IBrush OutOfStock = new SolidColorBrush(Color.Parse("#9AA39D"));
+
     private MainViewModel? _vm;
 
     /// <summary>True once the user chose Exit from the tray, so closing really quits.</summary>
@@ -57,6 +62,19 @@ public partial class MainWindow : Window
         if (grid.Columns.OfType<DataGridTemplateColumn>().FirstOrDefault() is { } imageColumn)
             imageColumn.IsVisible = on;
         grid.RowHeight = on ? 48 : 30;
+    }
+
+    // Grey out-of-stock / sold-out rows (rows recycle on scroll, so clear the override for normal rows).
+    private void OnInventoryRowLoading(object? sender, DataGridRowEventArgs e) =>
+        SetRowDim(e.Row, e.Row.DataContext is ItemRow { InStock: false });
+
+    private void OnChangeRowLoading(object? sender, DataGridRowEventArgs e) =>
+        SetRowDim(e.Row, e.Row.DataContext is ChangeRow { Event.Kind: ChangeKind.SoldOut });
+
+    private static void SetRowDim(DataGridRow row, bool dim)
+    {
+        if (dim) row.SetValue(TextElement.ForegroundProperty, OutOfStock);
+        else row.ClearValue(TextElement.ForegroundProperty);
     }
 
     private void OnItemDoubleTapped(object? sender, TappedEventArgs e) => Run(_vm?.OpenProductCommand);

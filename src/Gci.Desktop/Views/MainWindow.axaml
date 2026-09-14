@@ -6,7 +6,7 @@
         x:CompileBindings="False"
         Width="1320" Height="820" MinWidth="960" MinHeight="560"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource Ground}"
+        Background="{DynamicResource Ground}"
         Icon="/Assets/gci.ico"
         Title="GCI — Georgia Cannabis Inventory">
 
@@ -40,7 +40,7 @@
 
         <!-- ============================== Banners ============================== -->
         <StackPanel Grid.Row="1">
-            <Border Background="#FFF6DD" BorderBrush="#F0DDA6" BorderThickness="0,0,0,1" Padding="20,10" IsVisible="{Binding ShowUpdateBanner}">
+            <Border Background="{DynamicResource WarnBannerBg}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10" IsVisible="{Binding ShowUpdateBanner}">
                 <Grid ColumnDefinitions="*,Auto,Auto,Auto">
                     <TextBlock Grid.Column="0" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" Text="{Binding UpdateBannerText}" FontWeight="SemiBold" />
                     <Button Grid.Column="1" Content="Install update" Classes="primary" Command="{Binding InstallUpdateCommand}" Margin="0,0,6,0" />
@@ -49,7 +49,7 @@
                 </Grid>
             </Border>
 
-            <Border Background="#FFF6DD" BorderBrush="#F0DDA6" BorderThickness="0,0,0,1" Padding="20,10" IsVisible="{Binding ShowPhoneNudge}">
+            <Border Background="{DynamicResource WarnBannerBg}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10" IsVisible="{Binding ShowPhoneNudge}">
                 <Grid ColumnDefinitions="*,Auto,Auto">
                     <TextBlock Grid.Column="0" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0"
                                Text="Get your watch alerts on your phone. Drops can sell out overnight while you're away from this computer." />
@@ -58,7 +58,7 @@
                 </Grid>
             </Border>
 
-            <Border Background="#EEF3FB" BorderBrush="#CFDCF0" BorderThickness="0,0,0,1" Padding="20,10" IsVisible="{Binding ShowTelemetryBanner}">
+            <Border Background="{DynamicResource InfoBannerBg}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10" IsVisible="{Binding ShowTelemetryBanner}">
                 <Grid ColumnDefinitions="*,Auto,Auto,Auto">
                     <TextBlock Grid.Column="0" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0"
                                Text="Share detailed usage to help improve GCI? Anonymous installs are already counted; optionally also share which stores you monitor, products you open, and settings — never your patient details or anything you type." />
@@ -68,7 +68,7 @@
                 </Grid>
             </Border>
 
-            <Border Background="{StaticResource AccentSoft}" BorderBrush="#CFE3D2" BorderThickness="0,0,0,1" Padding="20,10" IsVisible="{Binding ShowWelcome}">
+            <Border Background="{DynamicResource AccentSoft}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10" IsVisible="{Binding ShowWelcome}">
                 <Grid ColumnDefinitions="*,Auto,Auto,Auto">
                     <TextBlock Grid.Column="0" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0"
                                Text="Welcome to GCI. It reads the public online menus of every Georgia medical dispensary it can find and alerts you when watched products appear, restock, sell out, or drop in price." />
@@ -104,7 +104,8 @@
                     </Border>
 
                     <DataGrid Grid.Row="1" x:Name="InventoryGrid" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}"
-                              IsReadOnly="True" AutoGenerateColumns="False" GridLinesVisibility="Horizontal" DoubleTapped="OnItemDoubleTapped">
+                              IsReadOnly="True" AutoGenerateColumns="False" GridLinesVisibility="Horizontal" DoubleTapped="OnItemDoubleTapped"
+                              LoadingRow="OnInventoryRowLoading">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="🛒 Preorder…" Command="{Binding PreorderCommand}" />
@@ -116,11 +117,15 @@
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="" Binding="{Binding WatchMark}" Width="26" SortMemberPath="Watched" />
+                            <DataGridTemplateColumn Header="" Width="26" SortMemberPath="Watched">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding WatchMark}" Classes="star" VerticalAlignment="Center" /></DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="" Width="56" CanUserSort="False" CanUserResize="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Width="42" Height="42" CornerRadius="4" Background="White" BorderBrush="#E6E9E3" BorderThickness="1">
+                                        <Border Width="42" Height="42" CornerRadius="4" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1">
                                             <Image v:Thumb.Size="84" v:Thumb.Image="{Binding Image}" Stretch="Uniform" Margin="1" />
                                         </Border>
                                     </DataTemplate>
@@ -130,7 +135,11 @@
                             <DataGridTextColumn Header="Product" Binding="{Binding Name}" Width="3*" />
                             <DataGridTextColumn Header="Brand" Binding="{Binding Brand}" Width="1.2*" />
                             <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="70" />
-                            <DataGridTextColumn Header="Price" Binding="{Binding PriceText}" Width="120" SortMemberPath="Price" />
+                            <DataGridTemplateColumn Header="Price" Width="120" SortMemberPath="Price">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding PriceText}" Classes.sale="{Binding OnSale}" VerticalAlignment="Center" /></DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Qty" Binding="{Binding QuantityText}" Width="55" SortMemberPath="Quantity" />
                             <DataGridTextColumn Header="Potency" Binding="{Binding Potency}" Width="1.1*" />
                             <DataGridTextColumn Header="Type" Binding="{Binding Strain}" Width="75" />
@@ -185,7 +194,8 @@
                         <Button Grid.Column="2" Content="Clear history" Command="{Binding ClearChangesCommand}" />
                     </Grid>
                     <DataGrid Grid.Row="1" x:Name="ChangeGrid" ItemsSource="{Binding ChangeRows}" SelectedItem="{Binding SelectedChange}"
-                              IsReadOnly="True" AutoGenerateColumns="False" GridLinesVisibility="Horizontal" DoubleTapped="OnChangeDoubleTapped">
+                              IsReadOnly="True" AutoGenerateColumns="False" GridLinesVisibility="Horizontal" DoubleTapped="OnChangeDoubleTapped"
+                              LoadingRow="OnChangeRowLoading">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="🛒 Preorder…" Command="{Binding PreorderChangeCommand}" />
@@ -193,7 +203,11 @@
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="" Binding="{Binding WatchMark}" Width="26" />
+                            <DataGridTemplateColumn Header="" Width="26">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding WatchMark}" Classes="star" VerticalAlignment="Center" /></DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="When" Binding="{Binding When}" Width="120" SortMemberPath="At" />
                             <DataGridTextColumn Header="Change" Binding="{Binding Kind}" Width="110" />
                             <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="95" />
@@ -223,9 +237,9 @@
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="White" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,6,8">
+                                    <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,6,8">
                                         <Grid ColumnDefinitions="Auto,*">
-                                            <Border Grid.Column="0" Width="128" Height="96" CornerRadius="6" Background="#F0F2EE" VerticalAlignment="Top"
+                                            <Border Grid.Column="0" Width="128" Height="96" CornerRadius="6" Background="{DynamicResource Card}" VerticalAlignment="Top"
                                                     Margin="0,0,14,0" ClipToBounds="True" IsVisible="{Binding Image, Converter={x:Static conv:NotNullConverter.Instance}}">
                                                 <Image v:Thumb.Size="256" v:Thumb.Image="{Binding Image}" Stretch="UniformToFill" />
                                             </Border>
@@ -240,7 +254,7 @@
                                                 </WrapPanel>
                                                 <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                 <TextBlock Text="{Binding Meta}" Classes="muted" FontSize="12" Margin="0,2,0,6" />
-                                                <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" MaxHeight="56" Foreground="#3B443F" />
+                                                <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" MaxHeight="56" Foreground="{DynamicResource Ink}" />
                                                 <Button Content="Read post →" HorizontalAlignment="Left" Margin="0,6,0,0"
                                                         Command="{Binding $parent[Window].DataContext.OpenPostCommand}" CommandParameter="{Binding}" />
                                             </StackPanel>
@@ -311,7 +325,14 @@
                             <DataGridTextColumn Header="Type" Binding="{Binding Kind}" Width="135" />
                             <DataGridTextColumn Header="City" Binding="{Binding City}" Width="120" />
                             <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="120" />
-                            <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="2*" />
+                            <DataGridTemplateColumn Header="Status" Width="2*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                                   Classes.error="{Binding Error, Converter={x:Static conv:NotNullConverter.Instance}}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Menu platform" Binding="{Binding Platform}" Width="110" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -448,7 +469,7 @@
         </TabControl>
 
         <!-- ============================== Status bar ============================== -->
-        <Border Grid.Row="3" Background="{StaticResource Card}" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="16,6" Margin="0,10,0,0">
+        <Border Grid.Row="3" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="16,6" Margin="0,10,0,0">
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Grid.Column="0" Text="{Binding StatusText}" Classes="muted" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                 <ProgressBar Grid.Column="1" Width="180" Height="6" Value="{Binding Progress}" Foreground="{StaticResource Accent}" IsVisible="{Binding IsRefreshing}" />
