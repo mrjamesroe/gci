@@ -3,7 +3,6 @@ using System.Globalization;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Gci.App.Services;
 using Gci.Core.Models;
 using Gci.Core.Services;
 
@@ -65,7 +64,8 @@ public sealed partial class MainViewModel
         if (!File.Exists(_telemetry.LogPath)) File.WriteAllText(_telemetry.LogPath, "");
         try
         {
-            Process.Start(new ProcessStartInfo("notepad.exe", $"\"{_telemetry.LogPath}\"") { UseShellExecute = false });
+            // Opens in the OS default text handler (Notepad on Windows, TextEdit on macOS).
+            Process.Start(new ProcessStartInfo(_telemetry.LogPath) { UseShellExecute = true });
         }
         catch (Exception ex)
         {
@@ -118,7 +118,7 @@ public sealed partial class MainViewModel
     private void TrackAppStarted(string launchKind, bool firstRun = false)
     {
         if (!_telemetry.BasicEnabled && !_telemetry.DetailedEnabled) return;
-        var env = TelemetryEnvironment.Snapshot();
+        var env = _systemSnapshot.Snapshot();
         var props = new Dictionary<string, object?>
         {
             ["install_id"] = Settings.InstallId,

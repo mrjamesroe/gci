@@ -10,10 +10,16 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <!-- Pure-managed PNG QR rendering (no System.Drawing), so the phone-setup VM stays cross-platform. -->
+    <PackageReference Include="QRCoder" Version="1.8.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Gci.Core\Gci.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Gci.App.Tests" />
   </ItemGroup>
 
 </Project>

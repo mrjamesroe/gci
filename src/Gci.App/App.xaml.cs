@@ -86,7 +86,9 @@ public partial class App : Application
         _feeds = new FeedService(data, userAgent: userAgent);
         _updates = new UpdateChecker();
         _telemetry = new TelemetryClient(data, TelemetryEnvironment.SystemInfo());
-        _vm = new MainViewModel(data, _inventory, new ProfileStore(data), _notifier, _thumbnails, _feeds, _updates, _telemetry, e.Args);
+        _vm = new MainViewModel(data, _inventory, new ProfileStore(data), _notifier, _thumbnails, _feeds, _updates, _telemetry,
+            _browser, new UpdateInstallerService(), new StartupRegistrationService(), new SystemSnapshotService(),
+            new WpfClipboard(), new DispatcherTicker(TimeSpan.FromSeconds(15), Dispatcher), e.Args);
         _vm.ExitRequested += ExitApp;
         _window = new MainWindow(_vm);
         _window.Closed += (_, _) => ExitApp();

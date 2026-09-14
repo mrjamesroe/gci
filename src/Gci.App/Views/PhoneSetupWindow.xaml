@@ -4,8 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Gci.App.ViewModels"
+        xmlns:pvm="clr-namespace:Gci.App.ViewModels;assembly=Gci.Presentation"
         mc:Ignorable="d"
-        d:DataContext="{d:DesignInstance Type=vm:PhoneSetupViewModel}"
+        d:DataContext="{d:DesignInstance Type=pvm:PhoneSetupViewModel}"
         Style="{StaticResource {x:Type Window}}"
         Title="Phone alerts" Width="780" Height="600" MinWidth="680" MinHeight="540"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
@@ -32,8 +33,8 @@
             <StackPanel>
                 <TextBlock Text="1. Install ntfy on your phone" Style="{StaticResource SectionTitle}" />
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="iPhone: App Store" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static vm:PhoneSetupViewModel.AppStoreUrl}" />
-                    <Button Content="Android: Google Play" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static vm:PhoneSetupViewModel.PlayStoreUrl}" />
+                    <Button Content="iPhone: App Store" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static pvm:PhoneSetupViewModel.AppStoreUrl}" />
+                    <Button Content="Android: Google Play" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static pvm:PhoneSetupViewModel.PlayStoreUrl}" />
                 </StackPanel>
                 <TextBlock Style="{StaticResource Muted}" FontSize="12" Margin="0,4,0,0" Text="Free, no account needed." />
 
@@ -80,7 +81,8 @@
 
             <Border Grid.Column="2" Style="{StaticResource CardBorder}" VerticalAlignment="Top" Padding="12">
                 <StackPanel>
-                    <Image Source="{Binding QrCode}" Width="250" Height="250" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                    <Image Source="{Binding QrCodePng, Converter={x:Static vm:BytesToImageConverter.Instance}}" Width="250" Height="250"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor" />
                     <TextBlock Text="Android: scan to subscribe" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,8,0,0" />
                     <TextBlock Text="iPhone: type the topic instead" HorizontalAlignment="Center" Style="{StaticResource Muted}" FontSize="12" />
                 </StackPanel>

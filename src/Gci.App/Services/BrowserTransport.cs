@@ -17,7 +17,7 @@ namespace Gci.App.Services;
 /// page is opened (invisibly) so the challenge can clear the way it does in a browser, then the fetch is retried.
 /// The WebView starts only when first needed and closes after a few idle minutes.
 /// </summary>
-public sealed class BrowserTransport : IBrowserTransport, IDisposable
+public sealed class BrowserTransport : IBrowserTransport, IEmbeddedBrowser, IDisposable
 {
     private const string BlankPath = "/__gci_blank__";
     private const int Width = 1024;
@@ -45,6 +45,9 @@ public sealed class BrowserTransport : IBrowserTransport, IDisposable
         _dispatcher = dispatcher;
         _idle = new DispatcherTimer(IdleTimeout, DispatcherPriority.Background, (_, _) => Close(), dispatcher) { IsEnabled = false };
     }
+
+    /// <summary>Whether the Cloudflare fallback / Preorder browser can run here (the WebView2 Runtime is installed).</summary>
+    public bool IsAvailable => RuntimeVersion() is not null;
 
     /// <summary>Installed WebView2 Runtime version, or null if there is none.</summary>
     public static string? RuntimeVersion()
