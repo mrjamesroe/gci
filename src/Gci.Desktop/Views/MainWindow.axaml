@@ -1,14 +1,129 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:Gci.Desktop"
         x:Class="Gci.Desktop.Views.MainWindow"
-        Width="1100" Height="760" MinWidth="820" MinHeight="560"
+        x:CompileBindings="False"
+        Width="1320" Height="820" MinWidth="960" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Ground}"
         Title="GCI — Georgia Cannabis Inventory">
-    <Border Padding="28">
-        <StackPanel Spacing="10" VerticalAlignment="Top">
-            <TextBlock Text="GCI — Georgia Cannabis Inventory" FontSize="24" FontWeight="SemiBold" />
-            <TextBlock Text="Cross-platform (Avalonia) shell — Windows and macOS. UI porting in progress."
-                       Opacity="0.7" />
-            <TextBlock x:Name="Engine" Opacity="0.7" />
+
+    <Window.KeyBindings>
+        <KeyBinding Gesture="F5" Command="{Binding RefreshCommand}" />
+    </Window.KeyBindings>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- ============================== Header ============================== -->
+        <Border Grid.Row="0" Background="{StaticResource AccentDark}" Padding="20,12">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="GCI" Foreground="White" FontSize="20" FontWeight="Bold" />
+                        <TextBlock Text="Georgia Cannabis Inventory" Foreground="{StaticResource HeaderSub}" FontSize="12" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Profile.Greeting}" Foreground="#DDEBE2" FontSize="13" Margin="24,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding LastRefreshText}" Foreground="White" HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding NextRefreshText}" Foreground="{StaticResource HeaderSub}" FontSize="12" HorizontalAlignment="Right" />
+                    </StackPanel>
+                    <Button Classes="header" Command="{Binding TogglePauseCommand}"
+                            Content="{Binding IsPaused, Converter={x:Static conv:PauseLabelConverter.Instance}}" />
+                    <Button Classes="primary" Command="{Binding RefreshCommand}" Content="⟳  Refresh now" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================== Banners ============================== -->
+        <StackPanel Grid.Row="1">
+            <Border Background="#FFF6DD" BorderBrush="#F0DDA6" BorderThickness="0,0,0,1" Padding="20,10"
+                    IsVisible="{Binding ShowUpdateBanner}">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0"
+                               Text="{Binding UpdateBannerText}" FontWeight="SemiBold" />
+                    <Button Grid.Column="1" Content="Install update" Classes="primary" Command="{Binding InstallUpdateCommand}" Margin="0,0,6,0" />
+                    <Button Grid.Column="2" Content="What's new" Command="{Binding ViewReleaseNotesCommand}" Margin="0,0,6,0" />
+                    <Button Grid.Column="3" Content="Later" Command="{Binding DismissUpdateCommand}" />
+                </Grid>
+            </Border>
+
+            <Border Background="{StaticResource AccentSoft}" BorderBrush="#CFE3D2" BorderThickness="0,0,0,1" Padding="20,10"
+                    IsVisible="{Binding ShowWelcome}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0"
+                               Text="Welcome to GCI. It reads the public online menus of every Georgia medical dispensary it can find and alerts you when watched products appear, restock, sell out, or drop in price." />
+                    <Button Grid.Column="1" Content="Got it" Command="{Binding DismissWelcomeCommand}" />
+                </Grid>
+            </Border>
         </StackPanel>
-    </Border>
+
+        <!-- ============================== Tabs ============================== -->
+        <TabControl Grid.Row="2" Margin="16,8,16,0" SelectedIndex="{Binding SelectedTabIndex}">
+
+            <!-- Inventory -->
+            <TabItem Header="Inventory">
+                <Grid Margin="0,12,0,0" RowDefinitions="Auto,*">
+                    <Border Grid.Row="0" Classes="card" Padding="12" Margin="0,0,0,10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <WrapPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBox Width="260" Margin="0,0,8,4" Watermark="Search products, brands, stores…"
+                                         Text="{Binding SearchText}" />
+                                <ComboBox Margin="0,0,8,4" MinWidth="150" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory}" />
+                                <ComboBox Margin="0,0,8,4" MinWidth="150" ItemsSource="{Binding OperatorOptions}" SelectedItem="{Binding SelectedOperator}" />
+                                <ComboBox Margin="0,0,8,4" MinWidth="220" ItemsSource="{Binding StoreOptions}" SelectedItem="{Binding SelectedStore}" />
+                                <CheckBox Margin="0,0,14,0" Content="In stock only" IsChecked="{Binding InStockOnly}" />
+                                <CheckBox Margin="0,0,14,0" Content="★ Watched only" IsChecked="{Binding WatchedOnly}" />
+                            </WrapPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                <TextBlock Text="{Binding ResultSummary}" Classes="muted" VerticalAlignment="Center" />
+                                <Button Content="Clear" Command="{Binding ClearFiltersCommand}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <DataGrid Grid.Row="1" x:Name="InventoryGrid" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}"
+                              IsReadOnly="True" AutoGenerateColumns="False" GridLinesVisibility="Horizontal"
+                              CanUserResizeColumns="True" CanUserSortColumns="True" DoubleTapped="OnItemDoubleTapped">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Open product page" Command="{Binding OpenProductCommand}" />
+                                <MenuItem Header="🛒 Preorder…" Command="{Binding PreorderCommand}" />
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="" Binding="{Binding WatchMark}" Width="26" SortMemberPath="Watched" />
+                            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="100" />
+                            <DataGridTextColumn Header="Product" Binding="{Binding Name}" Width="3*" />
+                            <DataGridTextColumn Header="Brand" Binding="{Binding Brand}" Width="1.2*" />
+                            <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="70" />
+                            <DataGridTextColumn Header="Price" Binding="{Binding PriceText}" Width="120" SortMemberPath="Price" />
+                            <DataGridTextColumn Header="Qty" Binding="{Binding QuantityText}" Width="55" SortMemberPath="Quantity" />
+                            <DataGridTextColumn Header="Potency" Binding="{Binding Potency}" Width="1.1*" />
+                            <DataGridTextColumn Header="Type" Binding="{Binding Strain}" Width="75" />
+                            <DataGridTextColumn Header="Store" Binding="{Binding StoreName}" Width="1.6*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- Later-phase tabs (kept so the tab strip and SelectedTabIndex match the Windows app). -->
+            <TabItem Header="Watches"><TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Coming in a later build of the macOS app." /></TabItem>
+            <TabItem Header="Changes"><TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Coming in a later build of the macOS app." /></TabItem>
+            <TabItem Header="News"><TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Coming in a later build of the macOS app." /></TabItem>
+            <TabItem Header="Stores"><TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Coming in a later build of the macOS app." /></TabItem>
+            <TabItem Header="Patient"><TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Coming in a later build of the macOS app." /></TabItem>
+            <TabItem Header="Settings"><TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Coming in a later build of the macOS app." /></TabItem>
+        </TabControl>
+
+        <!-- ============================== Status bar ============================== -->
+        <Border Grid.Row="3" Background="{StaticResource Card}" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="16,6" Margin="0,10,0,0">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding StatusText}" Classes="muted" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <ProgressBar Grid.Column="1" Width="180" Height="6" Value="{Binding Progress}" Foreground="{StaticResource Accent}"
+                             IsVisible="{Binding IsRefreshing}" />
+            </Grid>
+        </Border>
+    </Grid>
 </Window>

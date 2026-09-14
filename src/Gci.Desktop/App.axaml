@@ -1,8 +1,64 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Gci.Desktop.App"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Light">
+    <Application.Resources>
+        <!-- GCI palette (mirrors the WPF app's green light theme). -->
+        <Color x:Key="AccentColor">#2E7D32</Color>
+        <SolidColorBrush x:Key="Accent" Color="#2E7D32" />
+        <SolidColorBrush x:Key="AccentDark" Color="#16392A" />
+        <SolidColorBrush x:Key="AccentSoft" Color="#E8F3E9" />
+        <SolidColorBrush x:Key="Ground" Color="#F5F6F3" />
+        <SolidColorBrush x:Key="Card" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="Line" Color="#E1E4DE" />
+        <SolidColorBrush x:Key="Ink" Color="#1D2420" />
+        <SolidColorBrush x:Key="MutedBrush" Color="#66706A" />
+        <SolidColorBrush x:Key="Warn" Color="#B45309" />
+        <SolidColorBrush x:Key="Danger" Color="#B42318" />
+        <SolidColorBrush x:Key="Star" Color="#D4A017" />
+        <SolidColorBrush x:Key="HeaderSub" Color="#A9C7B6" />
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+
+        <!-- The accent action button (Refresh, primary actions). -->
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#276A2A" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <!-- The darker buttons that sit on the header bar. -->
+        <Style Selector="Button.header">
+            <Setter Property="Background" Value="#24503C" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.header:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2F6249" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+        </Style>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <!-- Card container, like the WPF CardBorder. -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource Card}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
     </Application.Styles>
 </Application>
