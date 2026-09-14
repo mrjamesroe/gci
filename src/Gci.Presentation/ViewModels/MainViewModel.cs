@@ -773,8 +773,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void RebuildChanges()
     {
         var watches = _watches.Where(w => w.Enabled).ToList();
+        // Fall back to the current inventory image for change rows recorded before events carried their own image.
+        var currentImages = new Dictionary<string, ImageRef>();
+        foreach (var row in _allRows)
+            if (row.Image is { } img) currentImages[row.Item.Key] = img;
         var rows = _inventory.Changes
-            .Select(e => new ChangeRow(e, watches.Any(w => WatchMatcher.Matches(w, e))))
+            .Select(e => new ChangeRow(e, watches.Any(w => WatchMatcher.Matches(w, e)), currentImages.GetValueOrDefault(e.ItemKey)))
             .Where(r => !ChangesWatchedOnly || r.Watched)
             .Take(MaxChangeRows)
             .ToList();
