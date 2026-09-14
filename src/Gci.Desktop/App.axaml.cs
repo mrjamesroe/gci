@@ -16,6 +16,7 @@ public partial class App : Application
     private FeedService? _feeds;
     private UpdateChecker? _updates;
     private TelemetryClient? _telemetry;
+    private DesktopThumbnailService? _thumbnails;
     private MainViewModel? _vm;
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -37,7 +38,9 @@ public partial class App : Application
             _feeds = new FeedService(data, userAgent: userAgent);
             _updates = new UpdateChecker();
             _telemetry = new TelemetryClient(data, DesktopSystemSnapshot.SystemInfo());
-            _vm = new MainViewModel(data, _inventory, new NoopProfileStore(), new DesktopNotifier(), new NoopThumbnailCache(),
+            _thumbnails = new DesktopThumbnailService(data, userAgent);
+            Views.Thumb.Service = _thumbnails;
+            _vm = new MainViewModel(data, _inventory, new NoopProfileStore(), new DesktopNotifier(), _thumbnails,
                 _feeds, _updates, _telemetry, new NoopEmbeddedBrowser(), new NoopUpdateInstaller(), new NoopStartupRegistration(),
                 new DesktopSystemSnapshot(), new DesktopClipboard(), new DesktopTicker(TimeSpan.FromSeconds(15)), args);
 
@@ -56,6 +59,7 @@ public partial class App : Application
     {
         _vm?.TrackSessionEnded();
         _vm?.Dispose();
+        _thumbnails?.Dispose();
         _inventory?.Dispose();
         _feeds?.Dispose();
         _updates?.Dispose();

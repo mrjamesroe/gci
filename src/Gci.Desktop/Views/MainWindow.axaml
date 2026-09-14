@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:Gci.Desktop"
+        xmlns:v="clr-namespace:Gci.Desktop.Views"
         x:Class="Gci.Desktop.Views.MainWindow"
         x:CompileBindings="False"
         Width="1320" Height="820" MinWidth="960" MinHeight="560"
@@ -115,6 +116,15 @@
                         </DataGrid.ContextMenu>
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="" Binding="{Binding WatchMark}" Width="26" SortMemberPath="Watched" />
+                            <DataGridTemplateColumn Header="" Width="56" CanUserSort="False" CanUserResize="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Width="42" Height="42" CornerRadius="4" Background="White" BorderBrush="#E6E9E3" BorderThickness="1">
+                                            <Image v:Thumb.Size="84" v:Thumb.Image="{Binding Image}" Stretch="Uniform" Margin="1" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="100" />
                             <DataGridTextColumn Header="Product" Binding="{Binding Name}" Width="3*" />
                             <DataGridTextColumn Header="Brand" Binding="{Binding Brand}" Width="1.2*" />
@@ -213,21 +223,27 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="White" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,6,8">
-                                        <StackPanel>
-                                            <WrapPanel>
-                                                <Border Background="{StaticResource Accent}" CornerRadius="3" Padding="6,1" Margin="0,0,6,4" IsVisible="{Binding IsUnread}">
-                                                    <TextBlock Text="NEW" Foreground="White" FontSize="11" FontWeight="Bold" />
-                                                </Border>
-                                                <Border Background="#FFF4D6" CornerRadius="3" Padding="6,1" Margin="0,0,6,4" IsVisible="{Binding IsMatch}">
-                                                    <TextBlock Text="{Binding MatchText}" Foreground="#8A6100" FontSize="11" FontWeight="SemiBold" />
-                                                </Border>
-                                            </WrapPanel>
-                                            <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                            <TextBlock Text="{Binding Meta}" Classes="muted" FontSize="12" Margin="0,2,0,6" />
-                                            <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" MaxHeight="56" Foreground="#3B443F" />
-                                            <Button Content="Read post →" HorizontalAlignment="Left" Margin="0,6,0,0"
-                                                    Command="{Binding $parent[Window].DataContext.OpenPostCommand}" CommandParameter="{Binding}" />
-                                        </StackPanel>
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <Border Grid.Column="0" Width="128" Height="96" CornerRadius="6" Background="#F0F2EE" VerticalAlignment="Top"
+                                                    Margin="0,0,14,0" ClipToBounds="True" IsVisible="{Binding Image, Converter={x:Static conv:NotNullConverter.Instance}}">
+                                                <Image v:Thumb.Size="256" v:Thumb.Image="{Binding Image}" Stretch="UniformToFill" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1">
+                                                <WrapPanel>
+                                                    <Border Background="{StaticResource Accent}" CornerRadius="3" Padding="6,1" Margin="0,0,6,4" IsVisible="{Binding IsUnread}">
+                                                        <TextBlock Text="NEW" Foreground="White" FontSize="11" FontWeight="Bold" />
+                                                    </Border>
+                                                    <Border Background="#FFF4D6" CornerRadius="3" Padding="6,1" Margin="0,0,6,4" IsVisible="{Binding IsMatch}">
+                                                        <TextBlock Text="{Binding MatchText}" Foreground="#8A6100" FontSize="11" FontWeight="SemiBold" />
+                                                    </Border>
+                                                </WrapPanel>
+                                                <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding Meta}" Classes="muted" FontSize="12" Margin="0,2,0,6" />
+                                                <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" MaxHeight="56" Foreground="#3B443F" />
+                                                <Button Content="Read post →" HorizontalAlignment="Left" Margin="0,6,0,0"
+                                                        Command="{Binding $parent[Window].DataContext.OpenPostCommand}" CommandParameter="{Binding}" />
+                                            </StackPanel>
+                                        </Grid>
                                     </Border>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
