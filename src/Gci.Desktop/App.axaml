@@ -1,38 +1,51 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Gci.Desktop.App"
-             RequestedThemeVariant="Light">
+             RequestedThemeVariant="Default">
     <Application.Resources>
-        <!-- Fluent controls size their text from this resource (default 14); match the Windows release's 13px. -->
-        <x:Double x:Key="ControlContentThemeFontSize">13</x:Double>
-        <!-- Fluent styles tab headers at a large 24px "pivot" size; the Windows app uses 14. -->
-        <x:Double x:Key="TabItemHeaderFontSize">14</x:Double>
+        <ResourceDictionary>
+            <!-- Base sizes/colors that are the same in light and dark. -->
+            <x:Double x:Key="ControlContentThemeFontSize">13</x:Double>
+            <x:Double x:Key="TabItemHeaderFontSize">14</x:Double>
 
-        <!-- GCI palette (mirrors the WPF app's green light theme). -->
-        <Color x:Key="AccentColor">#2E7D32</Color>
-        <SolidColorBrush x:Key="Accent" Color="#2E7D32" />
-        <SolidColorBrush x:Key="AccentDark" Color="#16392A" />
-        <SolidColorBrush x:Key="AccentSoft" Color="#E8F3E9" />
-        <SolidColorBrush x:Key="Ground" Color="#F5F6F3" />
-        <SolidColorBrush x:Key="Card" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="Line" Color="#E1E4DE" />
-        <SolidColorBrush x:Key="Ink" Color="#1D2420" />
-        <SolidColorBrush x:Key="MutedBrush" Color="#66706A" />
-        <SolidColorBrush x:Key="Warn" Color="#B45309" />
-        <SolidColorBrush x:Key="Danger" Color="#B42318" />
-        <SolidColorBrush x:Key="Star" Color="#D4A017" />
-        <SolidColorBrush x:Key="HeaderSub" Color="#A9C7B6" />
+            <Color x:Key="AccentColor">#2E7D32</Color>
+            <SolidColorBrush x:Key="Accent" Color="#2E7D32" />
+            <SolidColorBrush x:Key="AccentDark" Color="#16392A" />
+            <SolidColorBrush x:Key="HeaderSub" Color="#A9C7B6" />
+            <SolidColorBrush x:Key="Star" Color="#D4A017" />
+            <SolidColorBrush x:Key="Warn" Color="#C97A16" />
+            <SolidColorBrush x:Key="Danger" Color="#D3564B" />
+            <SolidColorBrush x:Key="OutOfStock" Color="#9AA39D" />
+
+            <!-- Surfaces/text that flip with the OS light/dark setting. Reference these via DynamicResource. -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="Ground" Color="#F5F6F3" />
+                    <SolidColorBrush x:Key="Card" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="Line" Color="#E1E4DE" />
+                    <SolidColorBrush x:Key="Ink" Color="#1D2420" />
+                    <SolidColorBrush x:Key="MutedBrush" Color="#66706A" />
+                    <SolidColorBrush x:Key="AccentSoft" Color="#E8F3E9" />
+                    <SolidColorBrush x:Key="WarnBannerBg" Color="#FFF6DD" />
+                    <SolidColorBrush x:Key="InfoBannerBg" Color="#EEF3FB" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="Ground" Color="#161A18" />
+                    <SolidColorBrush x:Key="Card" Color="#212623" />
+                    <SolidColorBrush x:Key="Line" Color="#333B36" />
+                    <SolidColorBrush x:Key="Ink" Color="#E6EAE7" />
+                    <SolidColorBrush x:Key="MutedBrush" Color="#9AA39D" />
+                    <SolidColorBrush x:Key="AccentSoft" Color="#21372B" />
+                    <SolidColorBrush x:Key="WarnBannerBg" Color="#37331F" />
+                    <SolidColorBrush x:Key="InfoBannerBg" Color="#232B34" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
-
-        <!-- Honor the OS system UI font (FontFamily left unset resolves to Segoe UI on Windows, San Francisco on macOS)
-             and match the Windows release's 13px base size, inherited by everything in the window. -->
-        <Style Selector="Window">
-            <Setter Property="FontSize" Value="13" />
-        </Style>
 
         <!-- The accent action button (Refresh, primary actions). -->
         <Style Selector="Button.primary">
@@ -56,7 +69,7 @@
         </Style>
 
         <Style Selector="TextBlock.muted">
-            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
         </Style>
         <Style Selector="TextBlock.section">
             <Setter Property="FontSize" Value="15" />
@@ -65,11 +78,34 @@
 
         <!-- Card container, like the WPF CardBorder. -->
         <Style Selector="Border.card">
-            <Setter Property="Background" Value="{StaticResource Card}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="Background" Value="{DynamicResource Card}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="16" />
+        </Style>
+
+        <!-- Table text at the same 13px as the rest of the UI (Fluent's DataGrid otherwise sizes it larger). -->
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="DataGridCell">
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="DataGridCell TextBlock">
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+
+        <!-- Status styling inside table cells, applied via bound classes (matches the Windows app). -->
+        <Style Selector="TextBlock.sale">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.star">
+            <Setter Property="Foreground" Value="{StaticResource Star}" />
+        </Style>
+        <Style Selector="TextBlock.error">
+            <Setter Property="Foreground" Value="{StaticResource Danger}" />
         </Style>
     </Application.Styles>
 </Application>
