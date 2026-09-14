@@ -1,13 +1,16 @@
 # GCI — Georgia Cannabis Inventory
 
-A Windows desktop app that pulls the live online menus of Georgia's medical cannabis dispensaries into one searchable
-list, refreshes them on a timer, and notifies you (Windows toast, optionally your phone) when products you watch
-appear, restock, drop in price, run low, or sell out.
+A desktop app for **Windows and macOS** that pulls the live online menus of Georgia's medical cannabis dispensaries
+into one searchable list, refreshes them on a timer, and notifies you (a desktop notification on Windows, and/or your
+phone on either platform) when products you watch appear, restock, drop in price, run low, or sell out.
 
-## Install
+Both builds share one engine and interface. A few features are Windows-only for now — see
+[macOS notes](#macos-notes).
 
-1. Download **gci.exe** from the [latest release](https://github.com/mrjamesroe/gci/releases/latest). It's a single
-   self-contained file; nothing else to install. Windows 10 (1809+) or 11, 64-bit.
+## Install — Windows
+
+1. Download **gci.exe** from the [latest release](https://github.com/mrjamesroe/gci/releases/latest/download/gci.exe).
+   It's a single self-contained file; nothing else to install. Windows 10 (1809+) or 11, 64-bit.
 2. Put it somewhere permanent, e.g. `Documents\GCI\gci.exe`, and run it.
 3. The exe isn't code-signed, so Windows SmartScreen shows "Windows protected your PC" the first time: click
    **More info → Run anyway**.
@@ -16,6 +19,49 @@ GCI checks this repository for new releases at startup and daily. When one is av
 **Install update**: the new exe is downloaded, verified against the release's published SHA-256 checksum, swapped in
 place of the old one, and restarted. Watches, settings, history and patient details live in `%LOCALAPPDATA%\GCI`
 and carry over. Updating can be turned off under **Settings → Updates**.
+
+## Install — macOS
+
+macOS 11 (Big Sur) or later. Pick the build for your Mac's chip:
+
+- **Apple Silicon (M1/M2/M3/M4):** [GCI-macos-arm64.zip](https://github.com/mrjamesroe/gci/releases/latest/download/GCI-macos-arm64.zip)
+- **Intel:** [GCI-macos-x64.zip](https://github.com/mrjamesroe/gci/releases/latest/download/GCI-macos-x64.zip)
+
+(Apple menu → About This Mac shows which you have.) Then:
+
+1. Unzip it — you get **GCI.app**. Move it to **Applications** if you like.
+2. The app isn't code-signed (no Apple Developer account), so on first launch macOS says *"GCI.app is damaged and can't
+   be opened."* That's Gatekeeper's wording for an unsigned, downloaded app — it isn't actually damaged. Clear the
+   download quarantine once, in Terminal (adjust the path to wherever GCI.app is):
+
+   ```bash
+   xattr -cr /Applications/GCI.app
+   ```
+
+3. Now open it normally (double-click, or `open /Applications/GCI.app`). You only need the `xattr` step once per
+   download.
+
+The macOS build does **not** update itself — when a new version ships, download the zip again, run `xattr -cr` on the
+new `GCI.app`, and replace the old one. Your data (in `~/.local/share/GCI`) carries over. The app follows your system
+**light/dark** appearance automatically.
+
+## macOS notes
+
+The macOS build has full feature parity for browsing, watches, changes, news, stores, images and phone alerts. These
+differences from Windows apply for now:
+
+- **Notifications:** watch alerts reach your **phone** (via ntfy, below) exactly as on Windows; there's no local macOS
+  notification-center popup yet, so on-Mac alerts are phone-only. Set up phone alerts to catch drops while away.
+- **Cloudflare-protected menus (some Jane/Dutchie stores):** the fallback is macOS's own `/usr/bin/curl`, which clears
+  Cloudflare in most cases. There's no embedded-browser fallback (WebView2 is Windows-only), so a store that shows a
+  Cloudflare *challenge* curl can't pass will report an error on the **Stores** tab. Your and most operators' stores
+  (Trulieve, Botanical Sciences/Lotus, Sweed) don't use Cloudflare and are unaffected.
+- **Preorder** opens the store's page in your **default browser** (the in-app checkout window is Windows-only); your
+  saved details aren't auto-filled there.
+- **Patient details** are encrypted with the macOS **Keychain** (rather than Windows DPAPI). First save/read may show
+  a one-time *"security wants to use your confidential information"* prompt — allow it.
+- **Updates** are manual (see above); **Settings → Updates → All releases** opens this page.
+- **Start at login** isn't offered yet; "keep running in the menu bar" and "start minimized" work.
 
 ## What it reads
 
@@ -37,7 +83,8 @@ with a Cloudflare block page, GCI escalates automatically and remembers what wor
 
 1. Windows' built-in `C:\Windows\System32\curl.exe`, which Cloudflare accepts on most PCs. Older Windows 10 builds of
    curl can't decompress responses, so GCI checks `curl -V` and only asks for compressed responses when it can.
-2. If curl is blocked too (it depends on the PC and network) or can't run (some antivirus stops apps launching it),
+2. *(Windows only — see [macOS notes](#macos-notes).)* If curl is blocked too (it depends on the PC and network) or
+   can't run (some antivirus stops apps launching it),
    a hidden **Microsoft Edge WebView2**. It loads a blank page on the menu API's own site and reads the menu from
    there, exactly as the store's website does, with Edge's own connection and cookies. If Cloudflare shows a
    "checking your browser" page, WebView2 opens the site's home page invisibly and lets the check finish. It starts
@@ -97,8 +144,9 @@ Keeping them honest when stores change pictures:
 - **Removed picture.** `404`/`410` drops the thumbnail.
 - **Bad responses.** Error pages, non-image bodies and undecodable files never replace a good thumbnail; failed first
   downloads back off and retry.
-- **EXIF orientation** is applied, so photos stored sideways with a rotate tag display upright; transparent PNGs are
-  flattened onto white.
+- **EXIF orientation** is applied on Windows, so photos stored sideways with a rotate tag display upright; transparent
+  PNGs are flattened onto white on both platforms (the macOS renderer skips the rotation step — menu images are
+  already upright).
 
 ## Preorder
 
@@ -125,10 +173,11 @@ in your browser instead.
 
 ## Patient details
 
-The **Patient** tab stores your name, date of birth, registry card number and card dates, phone and email, encrypted with
-Windows DPAPI (your Windows account only) in `profile.dat`. None of the menus need them. The only place they go is into a
-store's checkout form in the Preorder window, when you open it, and only you submit that form. GCI also uses the expiry
-date to remind you daily in the last 30 days.
+The **Patient** tab stores your name, date of birth, registry card number and card dates, phone and email, encrypted at
+rest for your account only: on Windows with DPAPI in `profile.dat`; on macOS with AES-GCM in `profile.enc`, its key held
+in the login **Keychain**. None of the menus need them. The only place they go is into a store's checkout form in the
+Preorder window (Windows), when you open it, and only you submit that form. GCI also uses the expiry date to remind you
+daily in the last 30 days.
 
 ## Privacy
 
@@ -139,7 +188,7 @@ opens a local log of every event (each line marked `basic` or `detailed`).
 
 **Basic — anonymous install ping (on by default).** So the author can see how many people use GCI and which versions
 are live, GCI sends `app_started` when it launches and `app_active` once a day while running. These carry only: GCI
-version, Windows version/build, CPU architecture, .NET version, a **random install id** generated once locally (it lets
+version, operating-system version/build, CPU architecture, .NET version, a **random install id** generated once locally (it lets
 installs and retention be counted; it is not derived from you or your PC and ties to nothing about you), install week
 and launch count. No activity, no settings, nothing that identifies you. You can turn this off in Settings — GCI is
 free and this is the one thing it asks in return, but the choice is yours.
@@ -191,7 +240,9 @@ file (no guest checkout). Set that account up ahead of time so an alert can beco
 
 ## Build & run
 
-Requires the .NET 8 SDK on Windows 10/11.
+Requires the .NET 8 SDK.
+
+**Windows** (the WPF app, `Gci.App`):
 
 ```bash
 dotnet build Gci.sln
@@ -205,24 +256,40 @@ Standalone single-file build (no .NET install needed on the target PC) → `publ
 dotnet publish src/Gci.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 ```
 
-App options: `--minimized` (start in the tray), `--data <folder>` (use a separate data folder, handy for testing; one
-copy runs per data folder, so a test profile can run alongside your normal one).
+**macOS** (the cross-platform Avalonia app, `Gci.Desktop`). `Gci.App` is Windows-only, so build the shared projects and
+the desktop app rather than the whole solution:
+
+```bash
+dotnet test tests/Gci.Core.Tests
+dotnet run --project src/Gci.Desktop
+dotnet publish src/Gci.Desktop -c Release -r osx-arm64 --self-contained -o build/osx-arm64   # or -r osx-x64 for Intel
+```
+
+The published folder is wrapped into `GCI.app` by CI (see below); to run it locally after publishing, launch the `gci`
+binary in that folder. `Gci.Desktop` also builds and runs on Windows and Linux for testing.
+
+App options (both apps): `--minimized` (start in the tray/menu bar), `--data <folder>` (use a separate data folder,
+handy for testing; one copy runs per data folder, so a test profile can run alongside your normal one).
 
 ### Releasing
 
 Bump nothing by hand: the tag is the version. Push an annotated tag and the [Build workflow](.github/workflows/build.yml)
-tests, publishes `gci.exe` with `-p:Version=<tag>`, writes `gci.exe.sha256`, and creates the GitHub release using the
-tag message as release notes:
+tests both platforms and publishes one GitHub release using the tag message as release notes, with:
+
+- `gci.exe` (built with `-p:Version=<tag>`) and `gci.exe.sha256` — the Windows single-file app;
+- `GCI-macos-arm64.zip` and `GCI-macos-x64.zip` — the macOS `GCI.app` bundles (the Windows job creates the release;
+  the macOS job attaches these to it).
 
 ```bash
-git tag -a v1.0.1 -m "What changed in this version"
+git tag -a v1.5.0 -m "What changed in this version"
 ```
 
 ```bash
-git push origin v1.0.1
+git push origin v1.5.0
 ```
 
-Running copies see the new release within a day (or immediately via **Settings → Updates → Check now**).
+Running Windows copies see the new release within a day (or immediately via **Settings → Updates → Check now**); macOS
+users download the new zip (the app links to this page under **Settings → Updates → All releases**).
 
 ### Command line
 
@@ -237,12 +304,13 @@ dotnet run --project src/Gci.Cli -- refresh
 
 ## Data folder
 
-`%LOCALAPPDATA%\GCI`: `settings.json`, `watches.json`, `state.json` (last menu per store), `changes.json` (history),
-`stores.json`, `feeds.json` (followed feeds, posts, read state), `profile.dat`, `images\` (thumbnail cache +
-`index.json` of versions and product→image links), `webview\` (Edge WebView2 profile, only created if a menu needed
-it), `webview-shop\` (the Preorder window's Edge profile, with any store sign-ins), `mosaic-batch-sample.json`
-(written once if a Botanical Sciences product ever exposes batch detail, so batch-level restock detection can be wired to it), `telemetry.json` (unsent events, only if you opted in) and
-`telemetry-log.jsonl` (what was sent).
+`%LOCALAPPDATA%\GCI` on Windows, `~/.local/share/GCI` on macOS: `settings.json`, `watches.json`, `state.json` (last
+menu per store), `changes.json` (history), `stores.json`, `feeds.json` (followed feeds, posts, read state), the
+patient profile (`profile.dat` on Windows / `profile.enc` on macOS), `images\` (thumbnail cache + `index.json` of
+versions and product→image links), `mosaic-batch-sample.json` (written once if a Botanical Sciences product ever
+exposes batch detail, so batch-level restock detection can be wired to it), `telemetry.json` (unsent events, only if
+you opted in) and `telemetry-log.jsonl` (what was sent). Windows also has `webview\` (Edge WebView2 profile, only
+created if a menu needed it) and `webview-shop\` (the Preorder window's Edge profile, with any store sign-ins).
 
 ### When a menu platform changes
 
@@ -256,8 +324,10 @@ Copy it to `%LOCALAPPDATA%\GCI\providers.json` and edit it to fix things without
 ## Layout
 
 ```
-src/Gci.Core     models, providers (Trulieve, Mosaic, Jane, Dutchie, Sweed), diff + watch engine, image cache, storage
-src/Gci.App      WPF app: tray icon, toasts, scheduler, thumbnails, UI
-src/Gci.Cli      headless CLI
-tests/           xUnit: categories, change detection, watch matching, Trulieve mapping, image cache, thumbnail rendering
+src/Gci.Core          models, providers (Trulieve, Mosaic, Jane, Dutchie, Sweed), diff + watch engine, image cache, storage
+src/Gci.Presentation  UI-agnostic ViewModels + platform-service interfaces, shared by both apps
+src/Gci.App           Windows WPF app: tray icon, toasts, self-update, WebView2, thumbnails, UI
+src/Gci.Desktop       cross-platform Avalonia app (Windows + macOS): tray/menu bar, SkiaSharp thumbnails, Keychain, UI
+src/Gci.Cli           headless CLI
+tests/                xUnit: categories, change detection, watch matching, Trulieve mapping, image cache, thumbnail rendering
 ```

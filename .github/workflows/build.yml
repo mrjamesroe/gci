@@ -44,10 +44,11 @@ jobs:
           gh release create '${{ github.ref_name }}' publish/gci.exe publish/gci.exe.sha256 `
             --title 'GCI ${{ github.ref_name }}' --notes-from-tag --verify-tag
 
-  # Proves the cross-platform (Avalonia) app compiles and Gci.Core passes on macOS every build. It does not yet attach
-  # Mac assets to releases; that happens once the Avalonia UI reaches parity and the WPF app retires.
+  # Builds and tests the cross-platform (Avalonia) app on macOS every push, and on a version tag attaches the
+  # GCI.app bundles to the same GitHub release the Windows job creates. Needs the Windows job so the release exists.
   macos:
     runs-on: macos-latest
+    needs: build
     steps:
       - uses: actions/checkout@v7
 
@@ -101,3 +102,10 @@ jobs:
           name: gci-macos
           path: build/GCI-macos-*.zip
           if-no-files-found: error
+
+      # On a version tag, add the bundles to the release the Windows job already created.
+      - name: Attach macOS bundles to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload '${{ github.ref_name }}' build/GCI-macos-arm64.zip build/GCI-macos-x64.zip --clobber
