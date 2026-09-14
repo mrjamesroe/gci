@@ -5,6 +5,8 @@
     <Application.Resources>
         <!-- Fluent controls size their text from this resource (default 14); match the Windows release's 13px. -->
         <x:Double x:Key="ControlContentThemeFontSize">13</x:Double>
+        <!-- Fluent styles tab headers at a large 24px "pivot" size; the Windows app uses 14. -->
+        <x:Double x:Key="TabItemHeaderFontSize">14</x:Double>
 
         <!-- GCI palette (mirrors the WPF app's green light theme). -->
         <Color x:Key="AccentColor">#2E7D32</Color>
