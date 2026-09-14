@@ -64,12 +64,40 @@ jobs:
           dotnet publish src/Gci.Desktop -c Release -r osx-arm64 --self-contained -o build/osx-arm64
           dotnet publish src/Gci.Desktop -c Release -r osx-x64  --self-contained -o build/osx-x64
 
-      # Upload the whole self-contained folders so the artifact actually runs (unzip, chmod +x gci, ./gci).
-      # A signed .app bundle + zip comes in Phase 5; for now Gatekeeper must be cleared by hand.
+      # Wrap each publish in a real GCI.app so it's one double-clickable app instead of ~100 loose files. Unsigned for
+      # now (Phase 5 adds signing/notarization), so first launch still needs a one-time Gatekeeper override — but only
+      # once for the whole app, not per library.
+      - name: Assemble .app bundles
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          case "$VERSION" in ''|*[!0-9.]*) VERSION=0.0.0 ;; esac
+          bundle() {
+            arch="$1"; app="build/pkg-$arch/GCI.app"; contents="$app/Contents"
+            mkdir -p "$contents/MacOS" "$contents/Resources"
+            cp -R "build/osx-$arch/." "$contents/MacOS/"
+            chmod +x "$contents/MacOS/gci"
+            printf '%s\n' \
+              '<?xml version="1.0" encoding="UTF-8"?>' \
+              '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+              '<plist version="1.0"><dict>' \
+              '<key>CFBundleName</key><string>GCI</string>' \
+              '<key>CFBundleDisplayName</key><string>GCI</string>' \
+              '<key>CFBundleIdentifier</key><string>com.mrjamesroe.gci</string>' \
+              '<key>CFBundleExecutable</key><string>gci</string>' \
+              '<key>CFBundlePackageType</key><string>APPL</string>' \
+              "<key>CFBundleShortVersionString</key><string>$VERSION</string>" \
+              "<key>CFBundleVersion</key><string>$VERSION</string>" \
+              '<key>LSMinimumSystemVersion</key><string>11.0</string>' \
+              '<key>NSHighResolutionCapable</key><true/>' \
+              '</dict></plist>' > "$contents/Info.plist"
+            # ditto preserves the bundle structure, symlinks and exec bits inside the zip.
+            ditto -c -k --sequesterRsrc --keepParent "$app" "build/GCI-macos-$arch.zip"
+          }
+          bundle arm64
+          bundle x64
+
       - uses: actions/upload-artifact@v4
         with:
           name: gci-macos
-          path: |
-            build/osx-arm64
-            build/osx-x64
+          path: build/GCI-macos-*.zip
           if-no-files-found: error
