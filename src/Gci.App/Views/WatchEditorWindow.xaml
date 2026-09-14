@@ -70,7 +70,7 @@
 
                 <TextBlock Text="Stores" Style="{StaticResource FieldLabel}" Margin="0,14,0,6" />
                 <CheckBox Content="Any monitored store" IsChecked="{Binding AllStores}" Margin="0,0,0,6" />
-                <Border BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Height="170" Background="{StaticResource Card}"
+                <Border BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="6" Height="170" Background="{DynamicResource Card}"
                         IsEnabled="{Binding AllStores, Converter={x:Static vm:InverseBoolConverter.Instance}}">
                     <ListBox ItemsSource="{Binding StoreChoices}" BorderThickness="0" Background="Transparent">
                         <ListBox.ItemTemplate>

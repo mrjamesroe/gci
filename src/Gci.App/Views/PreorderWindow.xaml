@@ -11,7 +11,7 @@
         Title="{Binding Title}" Width="1120" Height="860" MinWidth="720" MinHeight="560"
         WindowStartupLocation="CenterScreen" ResizeMode="CanResizeWithGrip">
     <DockPanel>
-        <Border DockPanel.Dock="Top" Background="{StaticResource Card}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="16,10">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="16,10">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Content="Fill my details" Style="{StaticResource PrimaryButton}" Command="{Binding FillCommand}" />
@@ -21,8 +21,8 @@
                     <TextBlock FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
                         <Run Text="🛒" />
                         <Run Text="{Binding Request.ProductName, Mode=OneWay}" />
-                        <Run Text="·" Foreground="{StaticResource MutedBrush}" />
-                        <Run Text="{Binding Request.StoreName, Mode=OneWay}" Foreground="{StaticResource MutedBrush}" />
+                        <Run Text="·" Foreground="{DynamicResource MutedBrush}" />
+                        <Run Text="{Binding Request.StoreName, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}" />
                     </TextBlock>
                     <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,4,0,0" />
                     <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,0" FontSize="12"
@@ -30,7 +30,7 @@
                 </StackPanel>
             </DockPanel>
         </Border>
-        <Border DockPanel.Dock="Top" Background="#FFF6DD" BorderBrush="#F0DDA6" BorderThickness="0,0,0,1" Padding="16,8">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource WarnBannerBg}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="16,8">
             <Border.Style>
                 <Style TargetType="Border">
                     <Style.Triggers>

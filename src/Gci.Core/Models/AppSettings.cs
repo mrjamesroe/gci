@@ -1,8 +1,19 @@
 namespace Gci.Core.Models;
 
+/// <summary>Which color theme the app uses. System follows the OS light/dark setting.</summary>
+public enum AppTheme
+{
+    System,
+    Light,
+    Dark,
+}
+
 public sealed class AppSettings
 {
     public const int MinimumRefreshMinutes = 5;
+
+    /// <summary>Light/Dark/System color theme.</summary>
+    public AppTheme Theme { get; set; } = AppTheme.System;
 
     public int RefreshMinutes { get; set; } = 15;
     public bool AutoRefresh { get; set; } = true;

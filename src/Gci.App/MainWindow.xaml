@@ -63,7 +63,7 @@
 
         <StackPanel Grid.Row="1">
         <!-- Update banner -->
-        <Border Background="#FFF6DD" BorderBrush="#F0DDA6" BorderThickness="0,0,0,1" Padding="20,10"
+        <Border Background="{DynamicResource WarnBannerBg}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10"
                 Visibility="{Binding ShowUpdateBanner, Converter={StaticResource BoolToVis}}">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="Later" Command="{Binding DismissUpdateCommand}" Margin="8,0,0,0" />
@@ -75,13 +75,13 @@
                 <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0">
                     <Run Text="⬆" />
                     <Run Text="{Binding UpdateBannerText, Mode=OneWay}" FontWeight="SemiBold" />
-                    <Run Text="Your watches, settings and history carry over." Foreground="#66706A" />
+                    <Run Text="Your watches, settings and history carry over." Foreground="{DynamicResource MutedBrush}" />
                 </TextBlock>
             </DockPanel>
         </Border>
 
         <!-- Edge WebView2 missing, and a monitored store needs it -->
-        <Border Background="#FDECEA" BorderBrush="#F2C4BE" BorderThickness="0,0,0,1" Padding="20,10"
+        <Border Background="{DynamicResource DangerBannerBg}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10"
                 Visibility="{Binding ShowWebView2Banner, Converter={StaticResource BoolToVis}}">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="I've installed it" Command="{Binding RecheckWebView2Command}" Margin="8,0,0,0" />
@@ -94,7 +94,7 @@
         </Border>
 
         <!-- Phone alerts reminder -->
-        <Border Background="#FFF6DD" BorderBrush="#F0DDA6" BorderThickness="0,0,0,1" Padding="20,10"
+        <Border Background="{DynamicResource WarnBannerBg}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10"
                 Visibility="{Binding ShowPhoneNudge, Converter={StaticResource BoolToVis}}">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="Not now" Command="{Binding DismissPhoneNudgeCommand}" Margin="8,0,0,0" />
@@ -107,7 +107,7 @@
         </Border>
 
         <!-- Detailed usage opt-in (the basic anonymous install ping is already on; see Settings to turn it off) -->
-        <Border Background="#EEF3FB" BorderBrush="#CFDCF0" BorderThickness="0,0,0,1" Padding="20,10"
+        <Border Background="{DynamicResource InfoBannerBg}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10"
                 Visibility="{Binding ShowTelemetryBanner, Converter={StaticResource BoolToVis}}">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="What's collected" Command="{Binding OpenPrivacyCommand}" Margin="8,0,0,0" />
@@ -121,7 +121,7 @@
         </Border>
 
         <!-- Welcome banner (first run) -->
-        <Border Background="{StaticResource AccentSoft}" BorderBrush="#CFE3D2" BorderThickness="0,0,0,1" Padding="20,10"
+        <Border Background="{DynamicResource AccentSoft}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10"
                 Visibility="{Binding ShowWelcome, Converter={StaticResource BoolToVis}}">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="Got it" Command="{Binding DismissWelcomeCommand}" Margin="8,0,0,0" />
@@ -199,18 +199,18 @@
                             <DataGridTemplateColumn x:Name="ImageColumn" Header="" Width="56" CanUserSort="False" CanUserResize="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Width="42" Height="42" CornerRadius="4" Background="White" BorderBrush="#E6E9E3" BorderThickness="1"
+                                        <Border Width="42" Height="42" CornerRadius="4" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1"
                                                 ToolTipService.InitialShowDelay="250" ToolTipService.ShowDuration="20000">
                                             <Border.ToolTip>
-                                                <ToolTip Padding="8" Background="White" BorderBrush="#D9DDD5">
+                                                <ToolTip Padding="8" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}">
                                                     <StackPanel Width="240">
                                                         <Grid Height="240">
-                                                            <TextBlock Text="Loading image…" Foreground="#8A928D" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                            <TextBlock Text="Loading image…" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                             <Image views:Thumb.Size="320" views:Thumb.Image="{Binding Image}" Stretch="Uniform"
                                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                                         </Grid>
                                                         <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,8,0,0" />
-                                                        <TextBlock Text="{Binding StoreName}" Foreground="#66706A" />
+                                                        <TextBlock Text="{Binding StoreName}" Foreground="{DynamicResource MutedBrush}" />
                                                     </StackPanel>
                                                 </ToolTip>
                                             </Border.ToolTip>
@@ -329,18 +329,18 @@
                             <DataGridTemplateColumn x:Name="ChangesImageColumn" Header="" Width="56" CanUserSort="False" CanUserResize="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Width="42" Height="42" CornerRadius="4" Background="White" BorderBrush="#E6E9E3" BorderThickness="1"
+                                        <Border Width="42" Height="42" CornerRadius="4" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1"
                                                 ToolTipService.InitialShowDelay="250" ToolTipService.ShowDuration="20000">
                                             <Border.ToolTip>
-                                                <ToolTip Padding="8" Background="White" BorderBrush="#D9DDD5">
+                                                <ToolTip Padding="8" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}">
                                                     <StackPanel Width="240">
                                                         <Grid Height="240">
-                                                            <TextBlock Text="Loading image…" Foreground="#8A928D" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                            <TextBlock Text="Loading image…" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                             <Image views:Thumb.Size="320" views:Thumb.Image="{Binding Image}" Stretch="Uniform"
                                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                                         </Grid>
                                                         <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,8,0,0" />
-                                                        <TextBlock Text="{Binding StoreName}" Foreground="#66706A" />
+                                                        <TextBlock Text="{Binding StoreName}" Foreground="{DynamicResource MutedBrush}" />
                                                     </StackPanel>
                                                 </ToolTip>
                                             </Border.ToolTip>
@@ -406,7 +406,7 @@
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="White" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="12"
+                                <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="12"
                                         ToolTip="Double-click to read the post">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -418,7 +418,7 @@
                                         </Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" CornerRadius="2" Background="{StaticResource Accent}"
                                                 Visibility="{Binding IsUnread, Converter={StaticResource BoolToVis}}" />
-                                        <Border Grid.Column="2" Height="96" CornerRadius="6" Background="#F0F2EE" VerticalAlignment="Top" ClipToBounds="True">
+                                        <Border Grid.Column="2" Height="96" CornerRadius="6" Background="{DynamicResource TilePlaceholder}" VerticalAlignment="Top" ClipToBounds="True">
                                             <Grid>
                                                 <TextBlock Text="🍑" Opacity="0.35" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 <Image views:Thumb.Size="256" views:Thumb.Image="{Binding Image}" Stretch="UniformToFill"
@@ -438,7 +438,7 @@
                                             </WrapPanel>
                                             <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
                                             <TextBlock Text="{Binding Meta}" Style="{StaticResource Muted}" FontSize="12" Margin="0,2,0,6" />
-                                            <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" TextTrimming="WordEllipsis" MaxHeight="56" Foreground="#3B443F" />
+                                            <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" TextTrimming="WordEllipsis" MaxHeight="56" Foreground="{DynamicResource Ink}" />
                                             <Button Content="Read post →" Style="{StaticResource LinkButton}" HorizontalAlignment="Left" Margin="0,6,0,0"
                                                     Command="{Binding DataContext.OpenPostCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding}" />
@@ -608,6 +608,18 @@
                     <StackPanel Margin="0,12,0,16" MaxWidth="760" HorizontalAlignment="Left">
                         <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
                             <StackPanel>
+                                <TextBlock Text="Appearance" Style="{StaticResource SectionTitle}" />
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" MinWidth="140" />
+                                </StackPanel>
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,8,0,0"
+                                           Text="System follows your Windows light/dark setting." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                            <StackPanel>
                                 <TextBlock Text="Automatic refresh" Style="{StaticResource SectionTitle}" />
                                 <CheckBox Content="Refresh automatically" IsChecked="{Binding AutoRefresh}" />
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
@@ -734,7 +746,7 @@
         </TabControl>
 
         <!-- Status bar -->
-        <Border Grid.Row="3" Background="{StaticResource Card}" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="16,6" Margin="0,10,0,0">
+        <Border Grid.Row="3" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="16,6" Margin="0,10,0,0">
             <DockPanel>
                 <ProgressBar DockPanel.Dock="Right" Width="180" Height="6" Value="{Binding Progress}" Foreground="{StaticResource Accent}"
                              Visibility="{Binding IsRefreshing, Converter={StaticResource BoolToVis}}" />

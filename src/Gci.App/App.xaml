@@ -16,18 +16,27 @@
             <SolidColorBrush x:Key="Warn" Color="#B45309" />
             <SolidColorBrush x:Key="Danger" Color="#B42318" />
             <SolidColorBrush x:Key="Star" Color="#D4A017" />
+            <!-- Banner backgrounds (light values; Themes/Dark.xaml overrides these and the surface brushes above). -->
+            <SolidColorBrush x:Key="WarnBannerBg" Color="#FFF6DD" />
+            <SolidColorBrush x:Key="InfoBannerBg" Color="#EEF3FB" />
+            <SolidColorBrush x:Key="DangerBannerBg" Color="#FDECEA" />
+            <SolidColorBrush x:Key="TilePlaceholder" Color="#F0F2EE" />
+            <!-- DataGrid palette (light; overridden in Themes/Dark.xaml). -->
+            <SolidColorBrush x:Key="HeaderBg" Color="#F0F2EE" />
+            <SolidColorBrush x:Key="AltRow" Color="#FAFBF9" />
+            <SolidColorBrush x:Key="GridLine" Color="#EEF0EC" />
 
             <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
             <Style TargetType="{x:Type Window}">
                 <Setter Property="FontFamily" Value="Segoe UI" />
                 <Setter Property="FontSize" Value="13" />
-                <Setter Property="Foreground" Value="{StaticResource Ink}" />
-                <Setter Property="Background" Value="{StaticResource Ground}" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="Background" Value="{DynamicResource Ground}" />
             </Style>
 
             <Style x:Key="Muted" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
             </Style>
             <Style x:Key="SectionTitle" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="15" />
@@ -35,15 +44,15 @@
                 <Setter Property="Margin" Value="0,0,0,6" />
             </Style>
             <Style x:Key="FieldLabel" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
                 <Setter Property="Margin" Value="0,10,0,4" />
             </Style>
 
             <!-- Buttons -->
             <Style TargetType="Button">
-                <Setter Property="Background" Value="{StaticResource Card}" />
-                <Setter Property="Foreground" Value="{StaticResource Ink}" />
-                <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+                <Setter Property="Background" Value="{DynamicResource Card}" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="Padding" Value="12,6" />
                 <Setter Property="Margin" Value="0,0,6,0" />
@@ -91,24 +100,46 @@
                 </Setter>
             </Style>
 
-            <!-- Inputs -->
+            <!-- Inputs. Background/Foreground use themeable brushes (identical to the old defaults in light mode). -->
             <Style TargetType="TextBox">
                 <Setter Property="Padding" Value="6,5" />
-                <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+                <Setter Property="Background" Value="{DynamicResource Card}" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="CaretBrush" Value="{DynamicResource Ink}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
             </Style>
             <Style TargetType="ComboBox">
                 <Setter Property="Padding" Value="6,5" />
                 <Setter Property="MinWidth" Value="150" />
                 <Setter Property="Margin" Value="0,0,8,0" />
+                <Setter Property="Background" Value="{DynamicResource Card}" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
             </Style>
+            <Style TargetType="ComboBoxItem">
+                <Setter Property="Background" Value="{DynamicResource Card}" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="Padding" Value="6,4" />
+            </Style>
             <Style TargetType="CheckBox">
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
                 <Setter Property="Margin" Value="0,0,14,0" />
             </Style>
             <Style TargetType="DatePicker">
                 <Setter Property="Padding" Value="4,3" />
+                <Setter Property="Background" Value="{DynamicResource Card}" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+            </Style>
+            <Style TargetType="ContextMenu">
+                <Setter Property="Background" Value="{DynamicResource Card}" />
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+            </Style>
+            <Style TargetType="MenuItem">
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
             </Style>
 
             <!-- Grids -->
@@ -118,22 +149,22 @@
                 <Setter Property="SelectionMode" Value="Single" />
                 <Setter Property="HeadersVisibility" Value="Column" />
                 <Setter Property="GridLinesVisibility" Value="Horizontal" />
-                <Setter Property="HorizontalGridLinesBrush" Value="#EEF0EC" />
-                <Setter Property="Background" Value="{StaticResource Card}" />
-                <Setter Property="RowBackground" Value="{StaticResource Card}" />
-                <Setter Property="AlternatingRowBackground" Value="#FAFBF9" />
-                <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+                <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource GridLine}" />
+                <Setter Property="Background" Value="{DynamicResource Card}" />
+                <Setter Property="RowBackground" Value="{DynamicResource Card}" />
+                <Setter Property="AlternatingRowBackground" Value="{DynamicResource AltRow}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
                 <Setter Property="RowHeight" Value="30" />
                 <Setter Property="CanUserResizeRows" Value="False" />
                 <Setter Property="EnableRowVirtualization" Value="True" />
                 <Setter Property="VirtualizingPanel.IsVirtualizingWhenGrouping" Value="True" />
             </Style>
             <Style TargetType="DataGridColumnHeader">
-                <Setter Property="Background" Value="#F0F2EE" />
-                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                <Setter Property="Background" Value="{DynamicResource HeaderBg}" />
+                <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="Padding" Value="8,7" />
-                <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
                 <Setter Property="BorderThickness" Value="0,0,0,1" />
             </Style>
             <Style TargetType="DataGridCell">
@@ -150,8 +181,8 @@
                 </Setter>
                 <Style.Triggers>
                     <Trigger Property="IsSelected" Value="True">
-                        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
-                        <Setter Property="Foreground" Value="{StaticResource Ink}" />
+                        <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                        <Setter Property="Foreground" Value="{DynamicResource Ink}" />
                     </Trigger>
                 </Style.Triggers>
             </Style>
@@ -168,17 +199,17 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="TabItem">
                             <Border x:Name="Bd" Padding="16,10,16,8" BorderThickness="0,0,0,3" BorderBrush="Transparent" Background="Transparent"
-                                    TextElement.Foreground="{StaticResource MutedBrush}" TextElement.FontSize="14">
+                                    TextElement.Foreground="{DynamicResource MutedBrush}" TextElement.FontSize="14">
                                 <ContentPresenter ContentSource="Header" />
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Accent}" />
-                                    <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{StaticResource Ink}" />
+                                    <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{DynamicResource Ink}" />
                                     <Setter TargetName="Bd" Property="TextElement.FontWeight" Value="SemiBold" />
                                 </Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{StaticResource Ink}" />
+                                    <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{DynamicResource Ink}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -187,8 +218,8 @@
             </Style>
 
             <Style x:Key="CardBorder" TargetType="Border">
-                <Setter Property="Background" Value="{StaticResource Card}" />
-                <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+                <Setter Property="Background" Value="{DynamicResource Card}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="CornerRadius" Value="8" />
                 <Setter Property="Padding" Value="16" />
