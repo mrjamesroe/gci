@@ -10,7 +10,7 @@ internal static class Program
 
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
-            .UsePlatformDetect()   // WebView2 host on Windows, Cocoa on macOS, X11 on Linux
-            .WithInterFont()
+            .UsePlatformDetect()   // also selects the OS default UI font: Segoe UI on Windows, San Francisco on macOS
             .LogToTrace();
+    // Note: no .WithInterFont() — we honor each platform's system UI font instead of bundling Inter.
 }

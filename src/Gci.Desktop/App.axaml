@@ -3,6 +3,9 @@
              x:Class="Gci.Desktop.App"
              RequestedThemeVariant="Light">
     <Application.Resources>
+        <!-- Fluent controls size their text from this resource (default 14); match the Windows release's 13px. -->
+        <x:Double x:Key="ControlContentThemeFontSize">13</x:Double>
+
         <!-- GCI palette (mirrors the WPF app's green light theme). -->
         <Color x:Key="AccentColor">#2E7D32</Color>
         <SolidColorBrush x:Key="Accent" Color="#2E7D32" />
@@ -22,6 +25,12 @@
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+
+        <!-- Honor the OS system UI font (FontFamily left unset resolves to Segoe UI on Windows, San Francisco on macOS)
+             and match the Windows release's 13px base size, inherited by everything in the window. -->
+        <Style Selector="Window">
+            <Setter Property="FontSize" Value="13" />
+        </Style>
 
         <!-- The accent action button (Refresh, primary actions). -->
         <Style Selector="Button.primary">
