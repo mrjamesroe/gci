@@ -1,5 +1,9 @@
 using System.Globalization;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Gci.App.Services;
 using Gci.Core.Models;
@@ -8,8 +12,9 @@ using Gci.Core.Services;
 namespace Gci.Desktop.Services;
 
 // Platform-service implementations for the cross-platform (Avalonia) app. The engine (Gci.Core) and the shared
-// ViewModels (Gci.Presentation) are fully wired here; the pieces that still need native work are honest placeholders,
-// each labelled with the phase that fills it in. The Windows (WPF) app keeps its own richer implementations.
+// ViewModels (Gci.Presentation) are fully wired here. Native desktop notifications, thumbnails, encrypted profile
+// storage, the embedded browser, self-update and launch-at-login are honest placeholders, each labelled with the
+// phase that fills it in. ntfy phone push and the clipboard are portable, so they work now.
 
 /// <summary>A UI-thread ticker backed by Avalonia's <see cref="DispatcherTimer"/> — drives the auto-refresh loop.</summary>
 public sealed class DesktopTicker : ITicker
@@ -57,15 +62,92 @@ public sealed class DesktopSystemSnapshot : ISystemSnapshot
     };
 }
 
-/// <summary>Desktop notifications land in Phase 4 (native macOS notifications + ntfy). For now, silent.</summary>
-public sealed class NoopNotifier : INotifier
+/// <summary>
+/// Sends watch/news alerts to the phone via ntfy (portable HTTP, so it works on macOS today). Local desktop
+/// notifications ("toasts") arrive with native macOS notifications in Phase 4; for now they're silent.
+/// </summary>
+public sealed class DesktopNotifier : INotifier
 {
-    public Task NotifyAsync(IReadOnlyList<(ChangeEvent Event, WatchRule Rule)> matches, AppSettings settings) => Task.CompletedTask;
-    public Task NotifyPostsAsync(IReadOnlyList<(FeedPost Post, string Source, string? Watch)> posts, AppSettings settings) => Task.CompletedTask;
+    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(15) };
+
+    public async Task NotifyAsync(IReadOnlyList<(ChangeEvent Event, WatchRule Rule)> matches, AppSettings settings)
+    {
+        if (matches.Count == 0 || string.IsNullOrWhiteSpace(settings.NtfyTopicUrl)) return;
+        foreach (var (e, _) in matches.DistinctBy(m => (m.Event.ItemKey, m.Event.Kind)).Take(8))
+            await SendNtfyAsync(settings.NtfyTopicUrl!, Title(e), $"{Body(e)}\n{e.StoreName}", e.Url, ActionLabel(e));
+    }
+
+    public async Task NotifyPostsAsync(IReadOnlyList<(FeedPost Post, string Source, string? Watch)> posts, AppSettings settings)
+    {
+        if (posts.Count == 0 || string.IsNullOrWhiteSpace(settings.NtfyTopicUrl)) return;
+        foreach (var (post, source, watch) in posts.Take(8))
+            await SendNtfyAsync(settings.NtfyTopicUrl!, $"{(watch is null ? "" : "★ ")}{source}: {post.Title}",
+                post.Summary ?? post.Title, post.Link, "Read post");
+    }
+
+    // Native macOS notifications land in Phase 4; the Changes/News tabs already have everything.
     public void ShowToast(string title, string body, string? attribution, string? url, string? tag, string openLabel = "Open menu",
         (string StoreKey, string Name)? preorder = null) { }
-    public Task<string?> SendNtfyAsync(string topicUrl, string title, string body, string? url, string actionLabel = "Open") =>
-        Task.FromResult<string?>("Phone alerts aren't available in the macOS build yet.");
+
+    public async Task<string?> SendNtfyAsync(string topicUrl, string title, string body, string? url, string actionLabel = "Open")
+    {
+        try
+        {
+            using var req = BuildNtfyRequest(topicUrl, title, body, url, actionLabel);
+            using var res = await _http.SendAsync(req);
+            return res.IsSuccessStatusCode ? null : $"ntfy returned HTTP {(int)res.StatusCode}";
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
+    private static string ActionLabel(ChangeEvent e) => e.Kind == ChangeKind.SoldOut ? "View" : "Order now";
+
+    private static HttpRequestMessage BuildNtfyRequest(string topicUrl, string title, string body, string? url, string actionLabel)
+    {
+        var text = url is null ? body : $"{body}\n{actionLabel}: {url}";
+        var req = new HttpRequestMessage(HttpMethod.Post, topicUrl)
+        {
+            Content = new StringContent(text, Encoding.UTF8, "text/plain"),
+        };
+        req.Headers.TryAddWithoutValidation("Title", IsAscii(title) ? title : $"=?UTF-8?B?{Convert.ToBase64String(Encoding.UTF8.GetBytes(title))}?=");
+        req.Headers.TryAddWithoutValidation("Tags", "leaves");
+        if (url is not null && IsAscii(url))
+        {
+            req.Headers.TryAddWithoutValidation("Click", url);
+            var quoted = url.IndexOfAny([',', ';']) >= 0 ? $"\"{url}\"" : url;
+            req.Headers.TryAddWithoutValidation("Actions", $"action=view, label={actionLabel}, url={quoted}, clear=true");
+        }
+        return req;
+    }
+
+    private static string Title(ChangeEvent e) => e.Kind switch
+    {
+        ChangeKind.NewProduct => $"New: {e.Name}",
+        ChangeKind.BackInStock => $"Back in stock: {e.Name}",
+        ChangeKind.Restocked => $"Restocked: {e.Name}",
+        ChangeKind.SoldOut => $"Sold out: {e.Name}",
+        ChangeKind.PriceDrop => $"Price drop: {e.Name}",
+        ChangeKind.QuantityChanged => $"Low stock: {e.Name}",
+        _ => e.Name,
+    };
+
+    private static string Body(ChangeEvent e)
+    {
+        var parts = new List<string>();
+        if (e.Size is not null) parts.Add(e.Size);
+        if (e.Kind == ChangeKind.PriceDrop) parts.Add($"{e.OldPrice:C0} → {e.NewPrice:C0}");
+        else if (e.NewPrice is { } p) parts.Add(p.ToString("C0"));
+        if (e.Kind == ChangeKind.QuantityChanged) parts.Add($"only {e.NewQuantity} left");
+        else if (e.Kind == ChangeKind.Restocked && e.OldQuantity is { } o && e.NewQuantity is { } n && n > o) parts.Add($"{o} → {n} units");
+        else if (e.NewQuantity is { } q && e.Kind != ChangeKind.SoldOut) parts.Add($"{q} available");
+        if (e.Detail is not null) parts.Add(e.Detail);
+        return string.Join(" · ", parts);
+    }
+
+    private static bool IsAscii(string s) => s.All(c => c < 128);
 }
 
 /// <summary>Product thumbnails land in Phase 4 (SkiaSharp decode). For now, the cache is inert.</summary>
@@ -109,8 +191,12 @@ public sealed class NoopStartupRegistration : IStartupRegistration
     public void Apply(bool enabled) { }
 }
 
-/// <summary>Clipboard access is wired with the phone-setup dialog in a later step.</summary>
-public sealed class NoopClipboard : IClipboard
+/// <summary>The system clipboard, via the main window's Avalonia clipboard.</summary>
+public sealed class DesktopClipboard : IClipboard
 {
-    public void SetText(string text) { }
+    public void SetText(string text)
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } window })
+            _ = window.Clipboard?.SetTextAsync(text);
+    }
 }

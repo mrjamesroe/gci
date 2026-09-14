@@ -100,11 +100,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public AppSettings Settings { get; }
     public ProfileViewModel Profile { get; }
 
-    /// <summary>Set by the view: shows the watch editor, returns true when saved.</summary>
-    public Func<WatchEditorViewModel, bool>? ShowWatchEditor { get; set; }
-    /// <summary>Set by the view: shows the phone-alerts setup dialog.</summary>
-    public Action<PhoneSetupViewModel>? ShowPhoneSetup { get; set; }
-    public Func<string, bool>? Confirm { get; set; }
+    /// <summary>Set by the view: shows the watch editor modally, returns true when saved. Async so it works on both
+    /// WPF (a synchronous ShowDialog wrapped in a completed task) and Avalonia (a genuinely async ShowDialog).</summary>
+    public Func<WatchEditorViewModel, Task<bool>>? ShowWatchEditor { get; set; }
+    /// <summary>Set by the view: shows the phone-alerts setup dialog modally.</summary>
+    public Func<PhoneSetupViewModel, Task>? ShowPhoneSetup { get; set; }
+    /// <summary>Set by the view: a yes/no confirmation. Returns true to proceed.</summary>
+    public Func<string, Task<bool>>? Confirm { get; set; }
     /// <summary>Raised with a short status line for the tray tooltip.</summary>
     public event Action<string>? TrayStatusChanged;
 
@@ -606,21 +608,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void AddWatch() => EditAndSave(new WatchRule { Name = "New watch" }, isNew: true, "new");
+    private Task AddWatch() => EditAndSave(new WatchRule { Name = "New watch" }, isNew: true, "new");
 
     [RelayCommand]
-    private void EditWatch(WatchRow? row)
+    private Task EditWatch(WatchRow? row)
     {
         row ??= SelectedWatch;
-        if (row is not null) EditAndSave(row.Rule, isNew: false, "edit");
+        return row is not null ? EditAndSave(row.Rule, isNew: false, "edit") : Task.CompletedTask;
     }
 
     [RelayCommand]
-    private void DeleteWatch(WatchRow? row)
+    private async Task DeleteWatch(WatchRow? row)
     {
         row ??= SelectedWatch;
         if (row is null) return;
-        if (Confirm?.Invoke($"Delete the watch \"{row.Name}\"?") == false) return;
+        if (Confirm is { } confirm && !await confirm($"Delete the watch \"{row.Name}\"?")) return;
         _watches.RemoveAll(w => w.Id == row.Rule.Id);
         SaveWatches();
         RebuildWatches();
@@ -697,11 +699,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void WatchProductHere(ItemRow? row)
+    private Task WatchProductHere(ItemRow? row)
     {
         row ??= SelectedRow;
-        if (row is null) return;
-        EditAndSave(new WatchRule
+        if (row is null) return Task.CompletedTask;
+        return EditAndSave(new WatchRule
         {
             Name = $"{row.Name} @ {row.Store.Name}",
             Keywords = { row.Name },
@@ -711,19 +713,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void WatchProductAnywhere(ItemRow? row)
+    private Task WatchProductAnywhere(ItemRow? row)
     {
         row ??= SelectedRow;
-        if (row is null) return;
-        EditAndSave(new WatchRule { Name = row.Name, Keywords = { row.Name } }, isNew: true, "product_anywhere");
+        if (row is null) return Task.CompletedTask;
+        return EditAndSave(new WatchRule { Name = row.Name, Keywords = { row.Name } }, isNew: true, "product_anywhere");
     }
 
     [RelayCommand]
-    private void WatchCategoryAtStore(ItemRow? row)
+    private Task WatchCategoryAtStore(ItemRow? row)
     {
         row ??= SelectedRow;
-        if (row is null) return;
-        EditAndSave(new WatchRule
+        if (row is null) return Task.CompletedTask;
+        return EditAndSave(new WatchRule
         {
             Name = $"{row.Item.Category} @ {row.Store.Name}",
             Category = row.Item.Category,
@@ -732,7 +734,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void WatchCurrentFilters()
+    private Task WatchCurrentFilters()
     {
         var rule = new WatchRule
         {
@@ -742,15 +744,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         };
         if (SelectedStore?.Value is { } store) rule.StoreKeys.Add(store);
         rule.Name = rule.Summary == "Everything" ? "Everything" : rule.Summary;
-        EditAndSave(rule, isNew: true, "filters");
+        return EditAndSave(rule, isNew: true, "filters");
     }
 
-    private void EditAndSave(WatchRule rule, bool isNew, string source)
+    private async Task EditAndSave(WatchRule rule, bool isNew, string source)
     {
         if (ShowWatchEditor is null) return;
         var current = _allRows.Select(r => (r.Item, r.Store)).ToList();
         var editor = new WatchEditorViewModel(rule, _inventory.Stores, current);
-        if (!ShowWatchEditor(editor)) return;
+        if (!await ShowWatchEditor(editor)) return;
 
         var updated = editor.ToRule();
         var index = _watches.FindIndex(w => w.Id == updated.Id);
@@ -782,9 +784,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void ClearChanges()
+    private async Task ClearChanges()
     {
-        if (Confirm?.Invoke("Clear the change history?") == false) return;
+        if (Confirm is { } confirm && !await confirm("Clear the change history?")) return;
         _inventory.ClearChanges();
         RebuildChanges();
     }
@@ -820,11 +822,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ShowPhoneNudge = _watches.Count > 0 && string.IsNullOrWhiteSpace(Settings.NtfyTopicUrl) && !Settings.PhoneNudgeDismissed;
 
     [RelayCommand]
-    private void OpenPhoneSetup()
+    private async Task OpenPhoneSetup()
     {
         if (ShowPhoneSetup is null) return;
         var setup = new PhoneSetupViewModel(Settings.NtfyTopicUrl, _notifier, _clipboard, url => NtfyTopicUrl = url ?? "", _telemetry);
-        ShowPhoneSetup(setup);
+        await ShowPhoneSetup(setup);
         UpdatePhoneNudge();
         SettingsMessage = string.IsNullOrWhiteSpace(Settings.NtfyTopicUrl) ? "Phone alerts are off." : "Phone alerts are on.";
     }
@@ -1105,10 +1107,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void RemoveFeed(FeedRow? row)
+    private async Task RemoveFeed(FeedRow? row)
     {
         if (row is null) return;
-        if (Confirm?.Invoke($"Stop following \"{row.Name}\"?") == false) return;
+        if (Confirm is { } confirm && !await confirm($"Stop following \"{row.Name}\"?")) return;
         _feeds.RemoveSource(row.Source.Id);
         RebuildFeedRows();
         RebuildNews();
@@ -1153,9 +1155,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void ClearImageCache()
+    private async Task ClearImageCache()
     {
-        if (Confirm?.Invoke("Delete all cached product images? They'll download again as you browse.") == false) return;
+        if (Confirm is { } confirm && !await confirm("Delete all cached product images? They'll download again as you browse.")) return;
         _telemetry.Track("image_cache_cleared", new Dictionary<string, object?> { ["cached"] = _thumbnails.GetStats().Images });
         _thumbnails.Clear();
         RebuildAllRows();

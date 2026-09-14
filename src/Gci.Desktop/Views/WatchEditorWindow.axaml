@@ -1,0 +1,85 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Gci.Desktop.Views.WatchEditorWindow"
+        x:CompileBindings="False"
+        Width="820" Height="640" MinWidth="700" MinHeight="520"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{StaticResource Ground}"
+        Title="Watch">
+    <Grid Margin="20" ColumnDefinitions="1.1*,20,*" RowDefinitions="*,Auto">
+
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Name" Classes="muted" Margin="0,0,0,4" />
+                <TextBox Text="{Binding Name}" />
+
+                <TextBlock Text="Keywords (comma-separated; any one can match)" Classes="muted" Margin="0,10,0,4" />
+                <TextBox Text="{Binding Keywords}" />
+                <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,0"
+                           Text="Words inside one keyword must all appear: &quot;live rosin&quot; won't match &quot;live resin&quot;. Searches product name, brand, strain type and category." />
+
+                <Grid Margin="0,4,0,0" ColumnDefinitions="*,12,*">
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Category" Classes="muted" Margin="0,10,0,4" />
+                        <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Operator" Classes="muted" Margin="0,10,0,4" />
+                        <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Operators}" SelectedItem="{Binding SelectedOperator}" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,12,*">
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Max price ($, optional)" Classes="muted" Margin="0,10,0,4" />
+                        <TextBox Text="{Binding MaxPrice}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Low-stock alert (units)" Classes="muted" Margin="0,10,0,4" />
+                        <TextBox Text="{Binding LowStock}" />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Text="Notify me when a match…" Classes="muted" Margin="0,14,0,6" />
+                <CheckBox Content="appears (new, or back after selling out)" IsChecked="{Binding NotifyAvailable}" Margin="0,0,0,6" />
+                <CheckBox Content="is restocked (new batch, or unit count jumps)" IsChecked="{Binding NotifyRestock}" Margin="0,0,0,6" />
+                <CheckBox Content="drops in price" IsChecked="{Binding NotifyPriceDrop}" Margin="0,0,0,6" />
+                <CheckBox Content="sells out" IsChecked="{Binding NotifySoldOut}" Margin="0,0,0,6" />
+
+                <TextBlock Text="Stores" Classes="muted" Margin="0,14,0,6" />
+                <CheckBox Content="Any monitored store" IsChecked="{Binding AllStores}" Margin="0,0,0,6" />
+                <Border BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Height="170" Background="{StaticResource Card}"
+                        IsEnabled="{Binding !AllStores}">
+                    <ListBox ItemsSource="{Binding StoreChoices}" Background="Transparent" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+
+                <CheckBox Content="Watch enabled" IsChecked="{Binding Enabled}" Margin="0,14,0,0" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Column="2" Classes="card" Padding="12">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Preview" Classes="section" Margin="0,0,0,6" />
+                <TextBlock DockPanel.Dock="Top" Text="{Binding PreviewText}" TextWrapping="Wrap" Classes="muted" Margin="0,0,0,8" />
+                <ListBox ItemsSource="{Binding PreviewItems}" BorderThickness="0" Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0" Spacing="8">
+            <Button Content="Cancel" Click="OnCancel" />
+            <Button Content="Save watch" Classes="primary" Click="OnSave" />
+        </StackPanel>
+    </Grid>
+</Window>
