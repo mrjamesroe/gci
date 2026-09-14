@@ -10,8 +10,9 @@ using Gci.Core.Services;
 namespace Gci.App.ViewModels;
 
 /// <summary>
-/// Opt-in usage telemetry (see README "Privacy"). Everything here is anonymous: store and product names come from
-/// public menus, keywords are reduced to a fixed vocabulary, and patient details, typed text and URLs are never sent.
+/// Usage telemetry (see README "Privacy"): an anonymous install ping on by default, and opt-in detailed usage.
+/// Everything here is anonymous — store and product names come from public menus, keywords are reduced to a fixed
+/// vocabulary, and patient details, typed text and URLs are never sent.
 /// </summary>
 public sealed partial class MainViewModel
 {
@@ -24,6 +25,7 @@ public sealed partial class MainViewModel
     private int _refreshesThisSession;
 
     [ObservableProperty] private bool _shareUsageStats;
+    [ObservableProperty] private bool _basicTelemetry;
     [ObservableProperty] private bool _showTelemetryBanner;
 
     public bool TelemetryAvailable => _telemetry.IsConfigured;
@@ -31,14 +33,27 @@ public sealed partial class MainViewModel
     private void InitTelemetry(TelemetryClient telemetry)
     {
         _telemetry = telemetry;
-        _telemetry.Enabled = Settings.ShareUsageStats == true;
+        _telemetry.BasicEnabled = Settings.BasicTelemetry;
+        _telemetry.DetailedEnabled = Settings.ShareUsageStats == true;
 #pragma warning disable MVVMTK0034 // loading, not a user change
         _shareUsageStats = Settings.ShareUsageStats == true;
+        _basicTelemetry = Settings.BasicTelemetry;
 #pragma warning restore MVVMTK0034
+        // The banner only asks about the deeper opt-in tier; the basic install ping is on by default.
         ShowTelemetryBanner = telemetry.IsConfigured && Settings.ShareUsageStats is null;
     }
 
     partial void OnShareUsageStatsChanged(bool value) => SetConsent(value, "settings");
+
+    partial void OnBasicTelemetryChanged(bool value)
+    {
+        if (Settings.BasicTelemetry == value) return;
+        Settings.BasicTelemetry = value;
+        SaveSettings();
+        // Record the choice before switching the ping off, so an opt-out is itself counted once.
+        if (!value) _telemetry.TrackBasic("basic_telemetry_off", new Dictionary<string, object?> { ["install_id"] = Settings.InstallId });
+        _telemetry.BasicEnabled = value;
+    }
 
     [RelayCommand] private void AcceptTelemetry() => SetConsent(true, "banner");
     [RelayCommand] private void DeclineTelemetry() => SetConsent(false, "banner");
@@ -65,7 +80,7 @@ public sealed partial class MainViewModel
         SaveSettings();
         ShowTelemetryBanner = false;
         if (ShareUsageStats != share) ShareUsageStats = share;
-        _telemetry.Enabled = share;
+        _telemetry.DetailedEnabled = share;
         if (share && changed)
         {
             _telemetry.Track("telemetry_enabled", new Dictionary<string, object?> { ["source"] = source });
@@ -79,12 +94,14 @@ public sealed partial class MainViewModel
         var now = DateTimeOffset.Now;
         var firstRun = Settings.InstallDate is null;
         Settings.InstallDate ??= now;
+        Settings.InstallId ??= Guid.NewGuid().ToString("N");
         Settings.LaunchCount++;
         var previous = Settings.LastRunVersion;
         Settings.LastRunVersion = CurrentVersion;
         SaveSettings();
 
         TrackAppStarted(launchKind, firstRun);
+        TrackActivePing();
         if (previous is not null && previous != CurrentVersion)
             _telemetry.Track("app_upgraded", new Dictionary<string, object?>
             {
@@ -94,31 +111,63 @@ public sealed partial class MainViewModel
             });
     }
 
+    /// <summary>
+    /// The install ping. Basic tier is minimal and anonymous (version, OS, a random install id); when the user has also
+    /// opted into detailed stats, the same event carries the full environment and their settings/counts.
+    /// </summary>
     private void TrackAppStarted(string launchKind, bool firstRun = false)
     {
-        if (!_telemetry.Enabled) return;
-        var props = TelemetryEnvironment.Snapshot();
-        props["launch"] = launchKind;
-        props["first_run"] = firstRun;
-        props["launches_total"] = Settings.LaunchCount;
-        props["install_week"] = InstallWeek();
-        props["days_since_install"] = DaysSinceInstall();
-        props["refresh_minutes"] = Settings.EffectiveRefreshMinutes;
-        props["auto_refresh"] = Settings.AutoRefresh;
-        props["toasts"] = Settings.ToastNotifications;
-        props["ntfy"] = !string.IsNullOrWhiteSpace(Settings.NtfyTopicUrl);
-        props["images"] = Settings.ShowImages;
-        props["tray"] = Settings.MinimizeToTray;
-        props["start_with_windows"] = Settings.StartWithWindows;
-        props["start_minimized"] = Settings.StartMinimized;
-        props["check_updates"] = Settings.CheckForUpdates;
-        props["welcome_done"] = Settings.FirstRunComplete;
-        props["patient_profile"] = !Profile.Current.IsEmpty;
-        props["card_expiry"] = ExpiryBucket(Profile.Current.DaysUntilExpiry(DateTime.Today));
-        props["watches"] = _watches.Count;
-        props["stores_monitored"] = EnabledKeys().Count;
-        props["feeds"] = _feeds.Sources.Count;
-        _telemetry.Track("app_started", props);
+        if (!_telemetry.BasicEnabled && !_telemetry.DetailedEnabled) return;
+        var env = TelemetryEnvironment.Snapshot();
+        var props = new Dictionary<string, object?>
+        {
+            ["install_id"] = Settings.InstallId,
+            ["launch"] = launchKind,
+            ["first_run"] = firstRun,
+            ["launches_total"] = Settings.LaunchCount,
+            ["install_week"] = InstallWeek(),
+            ["days_since_install"] = DaysSinceInstall(),
+            ["windows"] = env.GetValueOrDefault("windows"),
+            ["os_build"] = env.GetValueOrDefault("os_build"),
+            ["arch"] = env.GetValueOrDefault("arch"),
+            ["dotnet"] = env.GetValueOrDefault("dotnet"),
+            ["detailed_stats"] = _telemetry.DetailedEnabled,
+        };
+        if (_telemetry.DetailedEnabled)
+        {
+            foreach (var (k, v) in env) props[k] = v;
+            props["refresh_minutes"] = Settings.EffectiveRefreshMinutes;
+            props["auto_refresh"] = Settings.AutoRefresh;
+            props["toasts"] = Settings.ToastNotifications;
+            props["ntfy"] = !string.IsNullOrWhiteSpace(Settings.NtfyTopicUrl);
+            props["images"] = Settings.ShowImages;
+            props["tray"] = Settings.MinimizeToTray;
+            props["start_with_windows"] = Settings.StartWithWindows;
+            props["start_minimized"] = Settings.StartMinimized;
+            props["check_updates"] = Settings.CheckForUpdates;
+            props["welcome_done"] = Settings.FirstRunComplete;
+            props["patient_profile"] = !Profile.Current.IsEmpty;
+            props["card_expiry"] = ExpiryBucket(Profile.Current.DaysUntilExpiry(DateTime.Today));
+            props["watches"] = _watches.Count;
+            props["stores_monitored"] = EnabledKeys().Count;
+            props["feeds"] = _feeds.Sources.Count;
+        }
+        _telemetry.TrackBasic("app_started", props);
+    }
+
+    /// <summary>Anonymous once-a-day "still running" ping so a long-lived install counts as active. Basic tier.</summary>
+    public void TrackActivePing()
+    {
+        if (!_telemetry.BasicEnabled) return;
+        var today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (Settings.LastActivePing == today) return;
+        Settings.LastActivePing = today;
+        SaveSettings();
+        _telemetry.TrackBasic("app_active", new Dictionary<string, object?>
+        {
+            ["install_id"] = Settings.InstallId,
+            ["days_since_install"] = DaysSinceInstall(),
+        });
     }
 
     public void TrackSessionEnded()
@@ -293,7 +342,7 @@ public sealed partial class MainViewModel
     /// </summary>
     private void MaybeSendDailySummary()
     {
-        if (!_telemetry.Enabled) return;
+        if (!_telemetry.DetailedEnabled) return;
         var today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         if (Settings.LastSummaryDay == today) return;
         Settings.LastSummaryDay = today;
