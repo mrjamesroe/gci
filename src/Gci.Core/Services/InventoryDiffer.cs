@@ -92,5 +92,7 @@ public static class InventoryDiffer
         OldQuantity = oldQty,
         NewQuantity = newQty,
         Url = item.Url,
+        ImageUrl = item.ImageUrl,
+        ThumbnailUrl = item.ThumbnailUrl,
     };
 }

@@ -57,10 +57,17 @@ public partial class MainWindow : Window
     /// <summary>DataGrid columns aren't in the visual tree, so the image column is toggled here rather than bound.</summary>
     private void ApplyImageSetting()
     {
-        if (_vm is null || this.FindControl<DataGrid>("InventoryGrid") is not { } grid) return;
+        if (_vm is null) return;
         var on = _vm.ShowImages;
-        if (grid.Columns.OfType<DataGridTemplateColumn>().FirstOrDefault() is { } imageColumn)
-            imageColumn.IsVisible = on;
+        ToggleImages(this.FindControl<DataGrid>("InventoryGrid"), on);
+        ToggleImages(this.FindControl<DataGrid>("ChangeGrid"), on);
+    }
+
+    // Column layout for both grids: [0] watch ★, [1] product image, then the data columns.
+    private static void ToggleImages(DataGrid? grid, bool on)
+    {
+        if (grid is null) return;
+        if (grid.Columns.Count > 1) grid.Columns[1].IsVisible = on;
         grid.RowHeight = on ? 48 : 30;
     }
 
