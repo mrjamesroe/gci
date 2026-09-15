@@ -10,7 +10,7 @@ using System.Text.Json.Nodes;
 namespace Gci.Core.Providers;
 
 /// <summary>
-/// Shared HTTP plumbing: one client, browser-like headers, a single retry on transient failures.
+/// Shared HTTP plumbing: one client, browser-like headers, and up to two retries on transient failures/timeouts.
 /// Some hosts (Jane, Dutchie) sit behind Cloudflare bot rules that fingerprint the TLS handshake and reject .NET's.
 /// When a host answers with a Cloudflare block page, GCI escalates: first Windows' built-in curl.exe (accepted on most
 /// PCs), then a real browser engine (<see cref="Browser"/>, Edge WebView2 in the app). The route that works is
@@ -40,7 +40,8 @@ public sealed class ProviderHttp : IDisposable
             PooledConnectionLifetime = TimeSpan.FromMinutes(10),
         })
         {
-            Timeout = TimeSpan.FromSeconds(30),
+            // Generous: some menus (Trulieve's paged GraphQL) are slow under load, and a timeout fails the whole store.
+            Timeout = TimeSpan.FromSeconds(45),
         };
         _client.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
         _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -85,14 +86,14 @@ public sealed class ProviderHttp : IDisposable
             {
                 (status, text) = await SendAsync(method, url, json, headers, ct);
             }
-            catch (Exception ex) when (attempt < 2 && !ct.IsCancellationRequested && ex is not HostBlockedException
+            catch (Exception ex) when (attempt < 3 && !ct.IsCancellationRequested && ex is not HostBlockedException
                                        && ex is HttpRequestException or TaskCanceledException or ProviderException)
             {
                 await Task.Delay(TimeSpan.FromSeconds(3), ct);
                 continue;
             }
 
-            if (IsTransient(status) && attempt < 2)
+            if (IsTransient(status) && attempt < 3)
             {
                 await Task.Delay(TimeSpan.FromSeconds(3), ct);
                 continue;
