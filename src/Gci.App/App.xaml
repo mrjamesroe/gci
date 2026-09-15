@@ -159,6 +159,11 @@
                 <Setter Property="EnableRowVirtualization" Value="True" />
                 <Setter Property="VirtualizingPanel.IsVirtualizingWhenGrouping" Value="True" />
             </Style>
+            <!-- Row foreground reaches the cell content (unlike a cell Foreground, it doesn't fight the out-of-stock
+                 greying triggers, which also set the row foreground). Ink is near-black in light, light in dark. -->
+            <Style TargetType="DataGridRow">
+                <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+            </Style>
             <Style TargetType="DataGridColumnHeader">
                 <Setter Property="Background" Value="{DynamicResource HeaderBg}" />
                 <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />

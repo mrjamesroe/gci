@@ -181,7 +181,7 @@
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                         <DataGrid.RowStyle>
-                            <Style TargetType="DataGridRow">
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
                                 <Setter Property="ToolTip" Value="Double-click to open the product page · right-click to watch" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding InStock}" Value="False">
@@ -312,7 +312,7 @@
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                         <DataGrid.RowStyle>
-                            <Style TargetType="DataGridRow">
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Kind}" Value="Sold out">
                                         <Setter Property="Foreground" Value="#8A928D" />
