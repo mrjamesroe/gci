@@ -1,0 +1,125 @@
+name: Store audit
+
+# Weekly check for Georgia dispensaries GCI doesn't yet track. It runs the same discovery the app does and diffs the
+# live store list against a committed snapshot; any additions or removals open a GitHub issue to roll into a release.
+# It also doubles as a scraper-health monitor: if a provider's discovery breaks, its stores show up as "removed".
+# Report-only — discovery warnings never fail the run, and the snapshot is only advanced when the result looks healthy.
+on:
+  schedule:
+    - cron: '23 14 * * 1'   # Mondays 14:23 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # commit the updated snapshot
+  issues: write     # open the audit issue
+
+concurrency:
+  group: store-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SNAP: .github/store-audit/snapshot.json
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Discover current stores
+        run: |
+          mkdir -p "$(dirname "$SNAP")"
+          # Report-only: don't let a blocked fetch or non-zero exit fail the job.
+          dotnet run --project src/Gci.Cli -c Release -- audit --data "$RUNNER_TEMP/gci-data" \
+            > current.json 2> discovery.log || true
+          echo "::group::discovery warnings"; cat discovery.log || true; echo "::endgroup::"
+          if ! jq -e 'type == "array" and length > 0' current.json >/dev/null 2>&1; then
+            echo "Audit produced no usable store list; nothing to compare. Skipping."
+            echo "skip=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Establish baseline (first run)
+        if: env.skip != '1'
+        run: |
+          if [ ! -f "$SNAP" ]; then
+            cp current.json "$SNAP"
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "$SNAP"
+            git commit -m "chore: seed store-audit snapshot [skip ci]"
+            git push
+            echo "Baseline snapshot created; no diff on first run."
+            echo "skip=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Diff, report, and advance snapshot
+        if: env.skip != '1'
+        run: |
+          jq -r '.[].key' current.json | sort -u > cur.keys
+          jq -r '.[].key' "$SNAP"     | sort -u > old.keys
+          comm -23 cur.keys old.keys > added.keys      # in current, not snapshot
+          comm -13 cur.keys old.keys > removed.keys     # in snapshot, not current
+
+          cur_n=$(wc -l < cur.keys); old_n=$(wc -l < old.keys)
+          add_n=$(wc -l < added.keys); rem_n=$(wc -l < removed.keys)
+          echo "current=$cur_n snapshot=$old_n added=$add_n removed=$rem_n"
+
+          if [ "$add_n" -eq 0 ] && [ "$rem_n" -eq 0 ]; then
+            echo "No store changes since last audit."
+            exit 0
+          fi
+
+          # If discovery returned far fewer stores than we know about, treat it as a probable discovery failure:
+          # still raise an issue, but DON'T bake the shrunken list into the snapshot.
+          healthy=1
+          if [ "$cur_n" -lt $(( old_n / 2 )) ]; then healthy=0; fi
+
+          line() { while read -r k; do
+              jq -r --arg k "$k" '.[] | select(.key==$k) | "- `\(.key)` — \(.operator) · \(.name)\(if .city then " (" + .city + ")" else "" end)\(if .pharmacy then " · partner pharmacy" else "" end)"' "$1"
+            done; }
+
+          {
+            echo "The weekly store audit found changes between the live discovery and the committed snapshot."
+            echo
+            if [ "$healthy" -eq 0 ]; then
+              echo "> ⚠️ Discovery returned **$cur_n** stores vs **$old_n** in the snapshot — this may be a discovery/scraper failure rather than real closures. The snapshot was left unchanged; please verify before acting on the removals."
+              echo
+            fi
+            if [ "$add_n" -gt 0 ]; then
+              echo "### ➕ New stores ($add_n)"
+              echo "Add to \`src/Gci.Core/providers.default.json\` (or confirm auto-discovery handles them), then roll into a release."
+              echo
+              line current.json < added.keys
+              echo
+            fi
+            if [ "$rem_n" -gt 0 ]; then
+              echo "### ➖ Stores no longer discovered ($rem_n)"
+              echo "Either a store closed, or a provider's discovery broke — check the discovery warnings in the run log."
+              echo
+              line "$SNAP" < removed.keys
+              echo
+            fi
+            echo "---"
+            echo "Reminder: this only sees platforms GCI already reads. Also check the [GA Access to Medical Cannabis Commission](https://gmcc.ga.gov) list for brand-new licensees, and the Fine Fettle / True Bliss / Treevana locator pages."
+            echo
+            echo "_Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}_"
+          } > issue.md
+
+          gh label create store-audit --color 1f6feb --description "Automated store discovery audit" 2>/dev/null || true
+          title="Store audit: $add_n new, $rem_n removed ($(date -u +%Y-%m-%d))"
+          gh issue create --title "$title" --body-file issue.md --label store-audit
+
+          if [ "$healthy" -eq 1 ]; then
+            cp current.json "$SNAP"
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "$SNAP"
+            git commit -m "chore: update store-audit snapshot [skip ci]"
+            git push
+          else
+            echo "Snapshot left unchanged pending review of the possible discovery failure."
+          fi
