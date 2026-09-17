@@ -41,7 +41,8 @@ public sealed class TelemetryTests : IDisposable
         var e = JsonNode.Parse(request.Body)!.AsArray().Single()!;
         Assert.Equal("app_started", e["eventName"]!.GetValue<string>());
         Assert.True(ulong.TryParse(e["sessionId"]!.GetValue<string>(), out _));
-        Assert.Equal("Windows", e["systemProps"]!["osName"]!.GetValue<string>());
+        // osName reflects the OS the process runs on (Windows in CI); the macOS app reports "macOS" for the same reason.
+        Assert.Equal(TelemetryClient.OsName(), e["systemProps"]!["osName"]!.GetValue<string>());
         Assert.True(e["systemProps"]!["isDebug"]!.GetValue<bool>());
         Assert.Equal("1.1.0", e["systemProps"]!["appVersion"]!.GetValue<string>());
         Assert.Equal(3, e["props"]!["watches"]!.GetValue<double>());

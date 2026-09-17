@@ -211,8 +211,8 @@ public sealed class TelemetryClient : IDisposable
             ["errorType"] = ex.GetType().Name,
             ["stackTrace"] = TelemetryScrubber.Text(ex.StackTrace ?? "", 10000),
             ["timestamp"] = now.UtcDateTime.ToString("o"),
-            ["platform"] = "WPF",
-            ["osName"] = "Windows",
+            ["platform"] = OsName(),
+            ["osName"] = OsName(),
             ["osVersion"] = _system.OsVersion,
             ["appVersion"] = _system.AppVersion,
             ["sdkVersion"] = SdkVersion,
@@ -293,7 +293,7 @@ public sealed class TelemetryClient : IDisposable
                 ["systemProps"] = new JsonObject
                 {
                     ["isDebug"] = _system.IsDebug,
-                    ["osName"] = "Windows",
+                    ["osName"] = OsName(),
                     ["osVersion"] = _system.OsVersion,
                     ["locale"] = _system.Locale.Length <= 10 ? _system.Locale : _system.Locale[..10],
                     ["appVersion"] = _system.AppVersion,
@@ -370,6 +370,14 @@ public sealed class TelemetryClient : IDisposable
     private void Save() => _data.Save(StateFileName, _state);
 
     private static string Day(DateTimeOffset t) => t.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    /// <summary>The OS name Aptabase groups by, from the OS this process is actually running on (not the build target),
+    /// so the WPF and Avalonia apps each report themselves correctly.</summary>
+    internal static string OsName() =>
+        OperatingSystem.IsWindows() ? "Windows"
+        : OperatingSystem.IsMacOS() ? "macOS"
+        : OperatingSystem.IsLinux() ? "Linux"
+        : "Unknown";
 
     internal static string? BaseUrlFor(string? appKey)
     {
