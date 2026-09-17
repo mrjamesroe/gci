@@ -1,0 +1,407 @@
+[
+  {
+    "key": "dutchie:true-bliss-dispensary-peachtree",
+    "provider": "Dutchie",
+    "operator": "True Bliss",
+    "name": "Buckhead",
+    "city": "Atlanta",
+    "pharmacy": false,
+    "menuUrl": "https://dutchie.com/dispensary/true-bliss-dispensary-peachtree"
+  },
+  {
+    "key": "dutchie:true-bliss-peach",
+    "provider": "Dutchie",
+    "operator": "True Bliss",
+    "name": "Downtown",
+    "city": "Atlanta",
+    "pharmacy": false,
+    "menuUrl": "https://dutchie.com/dispensary/true-bliss-peach"
+  },
+  {
+    "key": "jane:6118",
+    "provider": "Jane",
+    "operator": "Fine Fettle",
+    "name": "Smyrna",
+    "city": "Smyrna",
+    "pharmacy": false,
+    "menuUrl": "https://www.iheartjane.com/stores/6118/fine-fettle-smyrna/menu"
+  },
+  {
+    "key": "jane:6135",
+    "provider": "Jane",
+    "operator": "Fine Fettle",
+    "name": "Decatur",
+    "city": "Decatur",
+    "pharmacy": false,
+    "menuUrl": "https://www.iheartjane.com/stores/6135/fine-fettle-decatur/menu"
+  },
+  {
+    "key": "jane:6136",
+    "provider": "Jane",
+    "operator": "Fine Fettle",
+    "name": "Athens",
+    "city": "Athens",
+    "pharmacy": false,
+    "menuUrl": "https://www.iheartjane.com/stores/6136/fine-fettle-athens/menu"
+  },
+  {
+    "key": "jane:7162",
+    "provider": "Jane",
+    "operator": "Fine Fettle",
+    "name": "Evans",
+    "city": "Evans",
+    "pharmacy": false,
+    "menuUrl": "https://www.iheartjane.com/stores/7162/fine-fettle-evans/menu"
+  },
+  {
+    "key": "mosaic:069af012-1b84-4a67-9cae-17f7ba60e08c",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Braselton Pharmacy - Braselton",
+    "city": "Braselton",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=braselton-pharmacy-braselton"
+  },
+  {
+    "key": "mosaic:107391cf-d8ec-4f81-a6b4-122da3a5813d",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Chamblee",
+    "city": "Chamblee",
+    "pharmacy": false,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=chamblee"
+  },
+  {
+    "key": "mosaic:299d18ff-e88b-4714-aac8-b0523f1219cc",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Colony Discount Drugs - Fitzgerald",
+    "city": "Fitzgerald",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=colony-discount-drugs-fitzgerald"
+  },
+  {
+    "key": "mosaic:2edffbaf-eee4-4570-aa36-4c0d2a460cf9",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Senoia Drug Company - Senoia",
+    "city": "Senoia",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=senoia-drug-company-senoia"
+  },
+  {
+    "key": "mosaic:3c3ca99c-af6a-4e73-b422-16dea52030b2",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Fairmount Drugs - Fairmount",
+    "city": "Fairmount",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=fairmount-drugs-fairmount"
+  },
+  {
+    "key": "mosaic:3c4c4207-b7db-4b7c-9b90-1b91ddadbcb0",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "PharmRx Pharmacy - Cartersville",
+    "city": "Carterville",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=pharmrx-pharmacy-cartersville"
+  },
+  {
+    "key": "mosaic:42fbdedc-70a3-4b0e-995d-ed04d32c146f",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Elevated Rx - Dalton",
+    "city": "Dalton",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=elevated-rx-dalton"
+  },
+  {
+    "key": "mosaic:44717951-289e-4c2a-bdcb-d82a714e009d",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Stockbridge",
+    "city": "Stockbridge",
+    "pharmacy": false,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=stockbridge"
+  },
+  {
+    "key": "mosaic:4af7251f-a0e9-4424-9e10-3a7c2262e35c",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Citizens Pharmacy - Flowery Branch",
+    "city": "Flowery Branch",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=citizens-pharmacy-flowery-branch"
+  },
+  {
+    "key": "mosaic:56ddb234-34d3-4825-b994-c0dbb51b2620",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "West Cobb Pharmacy - Midtown",
+    "city": "Atlanta",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=west-cobb-pharmacy-midtown"
+  },
+  {
+    "key": "mosaic:576f01d8-8224-45f6-adaa-b37866d24bf1",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "C\u0026C Pharmacy - Dallas",
+    "city": "Dallas",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=c-c-pharmacy-dallas"
+  },
+  {
+    "key": "mosaic:59019807-d786-4fbf-bf5c-8391f7a91ec8",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "West Midtown",
+    "city": "Atlanta",
+    "pharmacy": false,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=west-midtown"
+  },
+  {
+    "key": "mosaic:609da3f0-a4aa-498e-884d-d2cab5bb1d15",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Chancy Drugs - Valdosta",
+    "city": "Valdosta",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=chancy-drugs-valdosta"
+  },
+  {
+    "key": "mosaic:677707e1-0fb0-46a1-b49e-b4fe0d056845",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Dunwoody Pharmacy - Dunwoody",
+    "city": "Dunwoody",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=dunwoody-pharmacy-dunwoody"
+  },
+  {
+    "key": "mosaic:68955023-3ba9-49c1-a47b-b5395d658a7e",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Pooler",
+    "city": "Pooler",
+    "pharmacy": false,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=pooler"
+  },
+  {
+    "key": "mosaic:6c51c74d-7ca9-4c95-bc77-25fc51e125a5",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "High Grade - Douglas",
+    "city": "Douglas",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=high-grade-douglas"
+  },
+  {
+    "key": "mosaic:8eaa9dd2-64de-40eb-9675-a24dfc177aa6",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Moseley Drug Company - Dawson",
+    "city": "Dawson",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=moseley-drug-company-dawson"
+  },
+  {
+    "key": "mosaic:9ee63013-806e-45c6-b2da-626081ba7f44",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Altama Discount Pharmacy - Brunswick",
+    "city": "Brunswick",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=altama-discount-pharmacy-brunswick"
+  },
+  {
+    "key": "mosaic:a739d211-49a8-4d23-914d-cda47034ebb2",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "AAH - Johns Creek",
+    "city": "Duluth",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=aah-johns-creek"
+  },
+  {
+    "key": "mosaic:b824c2c8-706b-4d3a-891a-a7fe8e698fdf",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Friendly City Pharmacy - Tifton",
+    "city": "Tifton",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=friendly-city-pharmacy-tifton"
+  },
+  {
+    "key": "mosaic:baa0514b-74e1-42d4-8e4e-2878325d4a6f",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Marietta",
+    "city": "Marietta",
+    "pharmacy": false,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=marietta"
+  },
+  {
+    "key": "mosaic:c07b424f-e6d5-4963-b157-204db62e79c0",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Macon Pharmacy - Macon",
+    "city": "Macon",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=macon-pharmacy-macon"
+  },
+  {
+    "key": "mosaic:c91415f3-c3cd-4420-a43c-fe0f17e59ba8",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Holcomb Bridge Wellness - Roswell",
+    "city": "Roswell",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=holcomb-bridge-wellness-roswell"
+  },
+  {
+    "key": "mosaic:cba5b7c7-3e2d-4552-839f-f0eae2ff9146",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Lotus Farmacy - Suwanee",
+    "city": "Suwanee",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=lotus-farmacy-suwanee"
+  },
+  {
+    "key": "mosaic:d0781160-f7be-447f-804f-81d59259987c",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Friendly City Pharmacy on 2nd - Tifton",
+    "city": "Tifton",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=friendly-city-pharmacy-on-2nd-tifton"
+  },
+  {
+    "key": "mosaic:de8be889-ce23-48c9-abae-747ae6a98da5",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Lee King Pharmacy \u2013 Newnan",
+    "city": "Newnan",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=lee-king-pharmacy-newnan"
+  },
+  {
+    "key": "mosaic:df3c94c8-c600-43cc-81a2-80d746a45717",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "AAH - Woodstock",
+    "city": "Woodstock",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=aah-woodstock"
+  },
+  {
+    "key": "mosaic:f43e60b3-08e9-4fa2-bdc1-9ed7940a4e5f",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Bonaire Pharmacy - Warner Robins",
+    "city": "Warner Robins",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=bonaire-pharmacy-warner-robins"
+  },
+  {
+    "key": "mosaic:f7631442-d7b4-4c7e-95c0-eaa7f28012df",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Natural Wellness - Albany",
+    "city": "Albany",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=natural-wellness-albany"
+  },
+  {
+    "key": "mosaic:fe6f100f-0308-4063-b618-c1959d6ac285",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Corner Drugs - Chatsworth",
+    "city": "Chatsworth",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=corner-drugs-chatsworth"
+  },
+  {
+    "key": "mosaic:ff01e51c-3a42-4f2a-adb1-4ba5a4720de8",
+    "provider": "Mosaic",
+    "operator": "Botanical Sciences",
+    "name": "Tifton Drug Company - Tifton",
+    "city": "Tifton",
+    "pharmacy": true,
+    "menuUrl": "https://shop.botanicalsciences.com/products?store=tifton-drug-company-tifton"
+  },
+  {
+    "key": "sweed:863",
+    "provider": "Sweed",
+    "operator": "Treevana Remedy",
+    "name": "Milledgeville",
+    "city": "Milledgeville",
+    "pharmacy": false,
+    "menuUrl": "https://treevanaremedy.com/shop/menu"
+  },
+  {
+    "key": "trulieve:columbus",
+    "provider": "Trulieve",
+    "operator": "Trulieve",
+    "name": "Columbus",
+    "city": "Columbus",
+    "pharmacy": false,
+    "menuUrl": "https://www.trulieve.com/dispensaries/georgia/columbus"
+  },
+  {
+    "key": "trulieve:dunwoody_ga",
+    "provider": "Trulieve",
+    "operator": "Trulieve",
+    "name": "Dunwoody",
+    "city": "Dunwoody",
+    "pharmacy": false,
+    "menuUrl": "https://www.trulieve.com/dispensaries/georgia/dunwoody"
+  },
+  {
+    "key": "trulieve:evans",
+    "provider": "Trulieve",
+    "operator": "Trulieve",
+    "name": "Evans",
+    "city": "Evans",
+    "pharmacy": false,
+    "menuUrl": "https://www.trulieve.com/dispensaries/georgia/evans"
+  },
+  {
+    "key": "trulieve:macon",
+    "provider": "Trulieve",
+    "operator": "Trulieve",
+    "name": "Macon",
+    "city": "Macon",
+    "pharmacy": false,
+    "menuUrl": "https://www.trulieve.com/dispensaries/georgia/macon"
+  },
+  {
+    "key": "trulieve:marietta",
+    "provider": "Trulieve",
+    "operator": "Trulieve",
+    "name": "Marietta",
+    "city": "Marietta",
+    "pharmacy": false,
+    "menuUrl": "https://www.trulieve.com/dispensaries/georgia/marietta"
+  },
+  {
+    "key": "trulieve:newnan",
+    "provider": "Trulieve",
+    "operator": "Trulieve",
+    "name": "Newnan",
+    "city": "Newnan",
+    "pharmacy": false,
+    "menuUrl": "https://www.trulieve.com/dispensaries/georgia/newnan"
+  },
+  {
+    "key": "trulieve:pooler",
+    "provider": "Trulieve",
+    "operator": "Trulieve",
+    "name": "Pooler",
+    "city": "Pooler",
+    "pharmacy": false,
+    "menuUrl": "https://www.trulieve.com/dispensaries/georgia/pooler"
+  }
+]
