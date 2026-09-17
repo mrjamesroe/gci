@@ -7,6 +7,7 @@ using Gci.Core.Services;
 //   gci-cli menu <store-filter> [search]   print a store's in-stock menu
 //   gci-cli find <search> [--category X]   search every store
 //   gci-cli refresh [store-filter]         refresh and print detected changes
+//   gci-cli audit                          emit the discovered store list as JSON (used by the weekly store-audit CI)
 // Data lives in %LOCALAPPDATA%\GCI (shared with the app) unless --data <dir> is given.
 
 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
@@ -65,8 +66,32 @@ switch (command)
         break;
     }
 
+    case "audit":
+    {
+        // Fresh discovery, emitted as stable (key-sorted) JSON so the store-audit workflow can diff it against the
+        // committed snapshot. Discovery warnings go to stderr and never abort the run — this is report-only.
+        if (!rest.Contains("--rediscover")) rest.Add("--rediscover");
+        await EnsureStoresAsync();
+        var snapshot = service.Stores
+            .OrderBy(s => s.Key, StringComparer.Ordinal)
+            .Select(s => new
+            {
+                key = s.Key,
+                provider = s.Provider.ToString(),
+                @operator = s.Operator,
+                name = s.Name,
+                city = s.City,
+                pharmacy = s.IsPharmacyPartner,
+                menuUrl = s.MenuUrl,
+            })
+            .ToList();
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
+            snapshot, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        break;
+    }
+
     default:
-        Console.WriteLine("usage: gci-cli stores | menu <store> [search] | find <search> [--category Concentrate] [--pharmacies] | refresh [store] [--data <dir>]");
+        Console.WriteLine("usage: gci-cli stores | menu <store> [search] | find <search> [--category Concentrate] [--pharmacies] | refresh [store] | audit [--data <dir>]");
         break;
 }
 
