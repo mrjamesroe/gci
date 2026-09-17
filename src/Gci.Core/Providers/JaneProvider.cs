@@ -7,8 +7,11 @@ using Gci.Core.Services;
 namespace Gci.Core.Providers;
 
 /// <summary>
-/// Jane (iheartjane) powers Fine Fettle's menu. Products come from Jane's public Algolia index;
-/// Jane only lists what's in stock and doesn't expose unit counts.
+/// Jane (iheartjane) powers Fine Fettle's menu. Products come from Jane's public Algolia index, which lists only
+/// in-stock items. Jane has no raw warehouse count, but its per-weight <c>max_cart_quantity_*</c> field is the
+/// per-order cart limit clamped to the remaining stock — so it equals the true count once stock falls below the
+/// store's purchase cap, and only saturates (at <see cref="JaneConfig.MaxCartCap"/>) when a variant is well stocked.
+/// We surface that as the quantity, flagging saturated values as a lower bound ("N+").
 /// </summary>
 public sealed partial class JaneProvider(ProviderHttp http, JaneConfig config) : IInventoryProvider
 {
@@ -98,6 +101,13 @@ public sealed partial class JaneProvider(ProviderHttp http, JaneConfig config) :
 
             var special = hit.Dec($"special_price_{key}") ?? hit.Dec($"discounted_price_{key}");
             var thc = Json.Dec(potencies.GetValueOrDefault(key)?["thc_potency"]) ?? hit.Dec("percent_thc");
+
+            // Jane's per-weight cart limit tracks the remaining count while stock is low; clamp the ceiling so a
+            // well-stocked variant reads a stable "cap+" instead of a fluctuating raw limit.
+            var cap = hit.Int($"max_cart_quantity_{key}") ?? hit.Int("max_cart_quantity");
+            var qty = cap is { } limit && limit > 0 ? Math.Min(limit, config.MaxCartCap) : (int?)null;
+            var atLeast = cap is { } raw && raw >= config.MaxCartCap;
+
             yield return new InventoryItem
             {
                 StoreKey = store.Key,
@@ -111,7 +121,8 @@ public sealed partial class JaneProvider(ProviderHttp http, JaneConfig config) :
                 Size = key == "each" ? hit.Str("amount") ?? "each" : label,
                 Price = price,
                 SalePrice = special is { } s && s < price ? s : null,
-                Quantity = null,
+                Quantity = qty,
+                QuantityAtLeast = atLeast,
                 InStock = true,
                 Potency = Json.FormatPercent(thc, "THC"),
                 Url = url,
