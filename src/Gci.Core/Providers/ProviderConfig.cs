@@ -69,6 +69,9 @@ public sealed class JaneConfig
     public string AlgoliaApiKey { get; set; } = "";
     public string AlgoliaIndex { get; set; } = "menu-products-production";
     public string StoreApi { get; set; } = "https://api.iheartjane.com/v1/stores";
+    /// <summary>Jane reports availability as a per-order cart limit that equals the real remaining count once stock
+    /// drops below the store's purchase cap. Values at or above this ceiling are shown as "N+" rather than exact.</summary>
+    public int MaxCartCap { get; set; } = 30;
     public List<SeedStore> Stores { get; set; } = new();
 }
 

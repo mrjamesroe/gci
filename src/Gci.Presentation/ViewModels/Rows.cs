@@ -23,7 +23,9 @@ public sealed class ItemRow(InventoryItem item, StoreInfo store, bool watched)
         : Item.Price?.ToString("C0") ?? "";
     public bool OnSale => Item.SalePrice is not null;
     public int? Quantity => Item.Quantity;
-    public string QuantityText => Item.Quantity?.ToString() ?? (Item.InStock ? "✓" : "0");
+    public string QuantityText => Item.Quantity is { } q
+        ? (Item.QuantityAtLeast ? $"{q}+" : q.ToString())
+        : (Item.InStock ? "✓" : "0");
     public bool InStock => Item.InStock;
     public string StoreName => Store.DisplayName;
     public string Operator => Store.Operator;

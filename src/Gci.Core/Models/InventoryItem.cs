@@ -38,6 +38,9 @@ public sealed record InventoryItem
     public decimal? SalePrice { get; init; }
     /// <summary>Units available; null when the provider only reports in/out of stock.</summary>
     public int? Quantity { get; init; }
+    /// <summary>True when <see cref="Quantity"/> is a clamped lower bound (e.g. Jane caps its per-order limit),
+    /// so the real count is "that many or more". The UI shows it as "N+".</summary>
+    public bool QuantityAtLeast { get; init; }
     public bool InStock { get; init; }
     public string? Potency { get; init; }
     /// <summary>In-stock production batches, keyed by batch code, valued by a short label (e.g. "THC 84%").</summary>
