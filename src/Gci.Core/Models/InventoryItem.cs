@@ -36,6 +36,9 @@ public sealed record InventoryItem
     public decimal? Price { get; init; }
     /// <summary>Discounted price when a sale applies.</summary>
     public decimal? SalePrice { get; init; }
+    /// <summary>A named store promotion for awareness (e.g. "BOGO 50% Off", "Bundle deal"), when the provider
+    /// advertises one — separate from a plain price cut. Null when there's no named promo.</summary>
+    public string? Promo { get; init; }
     /// <summary>Units available; null when the provider only reports in/out of stock.</summary>
     public int? Quantity { get; init; }
     /// <summary>True when <see cref="Quantity"/> is a clamped lower bound (e.g. Jane caps its per-order limit),

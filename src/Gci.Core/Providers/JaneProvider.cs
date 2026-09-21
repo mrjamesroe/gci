@@ -121,6 +121,7 @@ public sealed partial class JaneProvider(ProviderHttp http, JaneConfig config) :
                 Size = key == "each" ? hit.Str("amount") ?? "each" : label,
                 Price = price,
                 SalePrice = special is { } s && s < price ? s : null,
+                Promo = hit.Str("special_title") ?? hit.Str("special_custom_badge"),
                 Quantity = qty,
                 QuantityAtLeast = atLeast,
                 InStock = true,
