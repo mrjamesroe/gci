@@ -2,6 +2,9 @@ name: Build
 
 # Every push and pull request runs the tests. Pushing a version tag (e.g. v1.0.1) also publishes a GitHub release
 # with gci.exe and gci.exe.sha256, which is what the in-app updater looks for.
+#
+# Code signing is OPTIONAL and gated on secrets: until you add them the signing steps are skipped and releases behave
+# exactly as before (unsigned). See docs/signing.md for how to obtain the certs and which secrets to set.
 on:
   push:
     branches: [main]
@@ -14,6 +17,9 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    # 'true'/'false' strings computed once so the signing steps can gate on them. Referencing a missing secret yields ''.
+    env:
+      SIGN_WIN: ${{ secrets.TRUSTED_SIGNING_ACCOUNT != '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -31,9 +37,32 @@ jobs:
           $version = '${{ github.ref_name }}'.TrimStart('v')
           dotnet publish src/Gci.App -c Release -r win-x64 --self-contained `
             -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$version -o publish
+
+      # Sign the exe BEFORE hashing, so gci.exe.sha256 matches the signed binary the updater downloads.
+      # Azure Trusted Signing: no hardware token, ~$10/mo, and the signature builds SmartScreen reputation over time.
+      - name: Sign gci.exe (Azure Trusted Signing)
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && env.SIGN_WIN == 'true' }}
+        uses: azure/trusted-signing-action@v0.5.9
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.TRUSTED_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.TRUSTED_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}/publish
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Checksum the exe
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
           $hash = (Get-FileHash publish/gci.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           [IO.File]::WriteAllText("$PWD/publish/gci.exe.sha256", "$hash  gci.exe`n")
-          "gci.exe SHA-256: $hash" >> $env:GITHUB_STEP_SUMMARY
+          "gci.exe SHA-256: $hash (signed: ${{ env.SIGN_WIN }})" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Create release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -49,6 +78,8 @@ jobs:
   macos:
     runs-on: macos-latest
     needs: build
+    env:
+      SIGN_MAC: ${{ secrets.MACOS_CERT_P12_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -65,9 +96,7 @@ jobs:
           dotnet publish src/Gci.Desktop -c Release -r osx-arm64 --self-contained -o build/osx-arm64
           dotnet publish src/Gci.Desktop -c Release -r osx-x64  --self-contained -o build/osx-x64
 
-      # Wrap each publish in a real GCI.app so it's one double-clickable app instead of ~100 loose files. Unsigned for
-      # now (Phase 5 adds signing/notarization), so first launch still needs a one-time Gatekeeper override — but only
-      # once for the whole app, not per library.
+      # Wrap each publish in a real GCI.app so it's one double-clickable app instead of ~100 loose files.
       - name: Assemble .app bundles
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -91,21 +120,70 @@ jobs:
               '<key>LSMinimumSystemVersion</key><string>11.0</string>' \
               '<key>NSHighResolutionCapable</key><true/>' \
               '</dict></plist>' > "$contents/Info.plist"
-            # ditto preserves the bundle structure, symlinks and exec bits inside the zip.
-            ditto -c -k --sequesterRsrc --keepParent "$app" "build/GCI-macos-$arch.zip"
           }
           bundle arm64
           bundle x64
 
+      # Sign with a Developer ID Application cert, notarize, and staple, so first launch has no Gatekeeper warning.
+      # Skipped entirely until the Apple secrets are set (see docs/signing.md).
+      - name: Sign & notarize the .app bundles
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && env.SIGN_MAC == 'true' }}
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/gci-signing.keychain-db"
+          security create-keychain -p actions "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p actions "$KEYCHAIN"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          security set-key-partition-list -S apple-tool:,apple: -s -k actions "$KEYCHAIN" >/dev/null
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | awk '/Developer ID Application/{print $2; exit}')
+          echo "Signing identity: $IDENTITY"
+          for arch in arm64 x64; do
+            app="build/pkg-$arch/GCI.app"
+            # Sign nested code first, then the bundle, with the hardened runtime (required for notarization).
+            find "$app/Contents/MacOS" -type f \( -name '*.dylib' -o -perm -u+x \) -exec \
+              codesign --force --options runtime --timestamp --sign "$IDENTITY" {} + || true
+            codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" "$app"
+            ditto -c -k --keepParent "$app" "$RUNNER_TEMP/notarize-$arch.zip"
+            xcrun notarytool submit "$RUNNER_TEMP/notarize-$arch.zip" \
+              --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
+            xcrun stapler staple "$app"
+          done
+
+      # Zip the (now stapled, if signed) bundles for distribution and publish a checksum for each, so a future
+      # macOS self-updater can verify its download the same way the Windows updater verifies gci.exe.
+      - name: Package bundles + checksums
+        run: |
+          set -euo pipefail
+          for arch in arm64 x64; do
+            app="build/pkg-$arch/GCI.app"
+            ditto -c -k --sequesterRsrc --keepParent "$app" "build/GCI-macos-$arch.zip"
+            shasum -a 256 "build/GCI-macos-$arch.zip" | awk -v a="$arch" '{print $1"  GCI-macos-"a".zip"}' \
+              > "build/GCI-macos-$arch.zip.sha256"
+          done
+
       - uses: actions/upload-artifact@v4
         with:
           name: gci-macos
-          path: build/GCI-macos-*.zip
+          path: |
+            build/GCI-macos-*.zip
+            build/GCI-macos-*.zip.sha256
           if-no-files-found: error
 
-      # On a version tag, add the bundles to the release the Windows job already created.
+      # On a version tag, add the bundles and their checksums to the release the Windows job already created.
       - name: Attach macOS bundles to the release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload '${{ github.ref_name }}' build/GCI-macos-arm64.zip build/GCI-macos-x64.zip --clobber
+        run: |
+          gh release upload '${{ github.ref_name }}' \
+            build/GCI-macos-arm64.zip build/GCI-macos-x64.zip \
+            build/GCI-macos-arm64.zip.sha256 build/GCI-macos-x64.zip.sha256 --clobber
