@@ -26,6 +26,9 @@ public sealed class ItemRow(InventoryItem item, StoreInfo store, bool watched)
     /// computed "N% off" when the item is simply discounted. Null when there's no promo.</summary>
     public string? PromoText => Item.Promo ?? (Item.SalePrice is { } sale && Item.Price is { } p && p > 0 && sale < p
         ? $"{Math.Round((1 - sale / p) * 100)}% off" : null);
+    /// <summary>Price per mg of THC — the dose-value metric — for sorting; null when THC content is unknown.</summary>
+    public decimal? CostPerThcMg => Item.CostPerThcMg;
+    public string ValueText => Item.CostPerThcMg is { } c ? $"${c:0.00}/mg" : "";
     public int? Quantity => Item.Quantity;
     public string QuantityText => Item.Quantity is { } q
         ? (Item.QuantityAtLeast ? $"{q}+" : q.ToString())

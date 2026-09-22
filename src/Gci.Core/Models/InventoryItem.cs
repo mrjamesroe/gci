@@ -59,4 +59,12 @@ public sealed record InventoryItem
 
     [JsonIgnore]
     public decimal? EffectivePrice => SalePrice ?? Price;
+
+    /// <summary>Total milligrams of THC in the package, when the potency label allows it (see <see cref="Services.PotencyMath"/>).</summary>
+    [JsonIgnore]
+    public double? ThcMg => Services.PotencyMath.ThcMilligrams(Potency, Size);
+
+    /// <summary>Price per milligram of THC — the dose-value metric — or null when THC content is unknown.</summary>
+    [JsonIgnore]
+    public decimal? CostPerThcMg => Services.PotencyMath.CostPerThcMg(EffectivePrice, Potency, Size);
 }

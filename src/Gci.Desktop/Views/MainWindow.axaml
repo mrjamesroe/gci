@@ -181,6 +181,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Qty" Binding="{Binding QuantityText}" Width="55" SortMemberPath="Quantity" />
+                            <DataGridTextColumn Header="$/mg THC" Binding="{Binding ValueText}" Width="82" SortMemberPath="CostPerThcMg" />
                             <DataGridTextColumn Header="Potency" Binding="{Binding Potency}" Width="1.1*" />
                             <DataGridTextColumn Header="Type" Binding="{Binding Strain}" Width="75" />
                             <DataGridTextColumn Header="Store" Binding="{Binding StoreName}" Width="1.6*" />
