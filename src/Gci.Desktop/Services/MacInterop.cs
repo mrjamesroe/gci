@@ -38,6 +38,15 @@ internal static class MacInterop
     [DllImport(ObjC, EntryPoint = "objc_msgSend")] public static extern IntPtr SendFrame(IntPtr recv, IntPtr sel, CGRect frame, IntPtr config);
     [DllImport(ObjC, EntryPoint = "objc_msgSend")] public static extern void SendVoid(IntPtr recv, IntPtr sel, IntPtr a);
     [DllImport(ObjC, EntryPoint = "objc_msgSend")] public static extern void SendVoid(IntPtr recv, IntPtr sel, IntPtr a, IntPtr b);
+    // WKUserScript initWithSource:injectionTime:forMainFrameOnly: — NSString, NSInteger, BOOL (marshal BOOL as I1).
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")]
+    public static extern IntPtr SendUserScript(IntPtr recv, IntPtr sel, IntPtr source, nint injectionTime, [MarshalAs(UnmanagedType.I1)] bool mainFrameOnly);
+
+    // Runtime class creation — for the one custom NSObject subclass that serves as nav delegate + script-message handler.
+    [DllImport(ObjC)] public static extern IntPtr objc_allocateClassPair(IntPtr superclass, string name, IntPtr extraBytes);
+    [DllImport(ObjC)] public static extern void objc_registerClassPair(IntPtr cls);
+    [DllImport(ObjC)] [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool class_addMethod(IntPtr cls, IntPtr sel, IntPtr imp, string types);
 
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct CGRect(double x, double y, double width, double height)
@@ -51,6 +60,14 @@ internal static class MacInterop
     {
         var cls = GetClass("NSString");
         return Send(cls, Sel("stringWithUTF8String:"), value);
+    }
+
+    /// <summary>Managed string from an NSString pointer (via -UTF8String), or null.</summary>
+    public static string? FromNSString(IntPtr nsString)
+    {
+        if (nsString == IntPtr.Zero) return null;
+        var utf8 = Send(nsString, Sel("UTF8String"));
+        return utf8 == IntPtr.Zero ? null : Marshal.PtrToStringUTF8(utf8);
     }
 
     /// <summary>alloc + init of a class by name.</summary>

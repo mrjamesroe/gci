@@ -16,8 +16,10 @@
                     <TextBlock Text="{Binding HintText}" Foreground="{StaticResource HeaderSub}" FontSize="12" TextWrapping="Wrap"
                                Margin="0,2,0,0" />
                 </StackPanel>
-                <Button Grid.Column="1" Classes="header" VerticalAlignment="Center" Content="Open in your browser"
-                        Command="{Binding OpenInBrowserCommand}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                    <Button Classes="primary" Content="Fill my details" Command="{Binding FillCommand}" />
+                    <Button Classes="header" Content="Open in your browser" Command="{Binding OpenInBrowserCommand}" />
+                </StackPanel>
             </Grid>
         </Border>
 

@@ -16,10 +16,16 @@
     <AssemblyName>gci</AssemblyName>
     <Product>GCI - Georgia Cannabis Inventory</Product>
     <Version>1.0.0</Version>
+    <!-- The macOS WKWebView interop registers Objective-C method IMPs as unmanaged function pointers. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <!-- Reuse the exact prefill/cart scripts the Windows app ships; a small shim (in MacWebView) adapts the
+         WebView2 messaging API they use onto WKWebView. Single source of truth in Gci.App/Assets. -->
+    <EmbeddedResource Include="..\Gci.App\Assets\prefill.js" LogicalName="prefill.js" />
+    <EmbeddedResource Include="..\Gci.App\Assets\cart.js" LogicalName="cart.js" />
   </ItemGroup>
 
   <ItemGroup>
