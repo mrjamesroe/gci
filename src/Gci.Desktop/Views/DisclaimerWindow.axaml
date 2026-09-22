@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Gci.App.ViewModels;assembly=Gci.Presentation"
+        x:Class="Gci.Desktop.Views.DisclaimerWindow"
+        x:CompileBindings="False"
+        Width="720" Height="680" MinWidth="600" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Ground}"
+        Title="Before you use GCI">
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <Border Grid.Row="0" Background="{StaticResource AccentDark}" Padding="24,18">
+            <StackPanel>
+                <TextBlock Text="GCI — Georgia Cannabis Inventory" Foreground="White" FontSize="18" FontWeight="Bold" />
+                <TextBlock Text="{x:Static vm:Legal.Title}" Foreground="{StaticResource HeaderSub}" FontSize="13" Margin="0,2,0,0" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" Padding="24,18">
+            <TextBlock Text="{x:Static vm:Legal.Disclaimer}" TextWrapping="Wrap" LineHeight="20" MaxWidth="620" HorizontalAlignment="Left" />
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="24,14">
+            <StackPanel>
+                <CheckBox x:Name="AgreeCheck" Content="{x:Static vm:Legal.AcceptLabel}" IsCheckedChanged="OnAgreeChanged" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0" Spacing="8">
+                    <Button Content="Read the privacy details" Click="OnPrivacy" />
+                    <Button Content="Decline &amp; quit" Click="OnDecline" />
+                    <Button x:Name="AcceptButton" Content="I agree — continue" Classes="primary" Click="OnAccept" IsEnabled="False" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

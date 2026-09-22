@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Gci.App.ViewModels"
+        xmlns:pvm="clr-namespace:Gci.App.ViewModels;assembly=Gci.Presentation"
         xmlns:views="clr-namespace:Gci.App.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
@@ -778,6 +779,17 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                     <TextBlock Text="{Binding DataFolder}" VerticalAlignment="Center" Margin="0,0,12,0" FontFamily="Consolas" />
                                     <Button Content="Open folder" Command="{Binding OpenDataFolderCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorder}" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="About &amp; legal" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{x:Static pvm:Legal.Disclaimer}" TextWrapping="Wrap" Style="{StaticResource Muted}" LineHeight="19" />
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <Button Content="Privacy details" Command="{Binding OpenPrivacyCommand}" />
+                                    <Button Content="Georgia Low THC Oil Registry" Command="{Binding OpenUrlCommand}" CommandParameter="{x:Static pvm:Legal.RegistryUrl}" />
                                 </StackPanel>
                             </StackPanel>
                         </Border>

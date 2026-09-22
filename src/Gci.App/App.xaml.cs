@@ -93,6 +93,18 @@ public partial class App : Application
             new WpfClipboard(), new DispatcherTicker(TimeSpan.FromSeconds(15), Dispatcher), e.Args);
         _vm.ApplyTheme = Theming.Apply;
         Theming.Apply(_vm.Settings.Theme);
+
+        // First-run consent: the app doesn't do anything until the disclaimer is accepted. Declining quits.
+        if (_vm.Settings.DisclaimerAcceptedVersion != Legal.Version)
+        {
+            if (new DisclaimerWindow().ShowDialog() != true)
+            {
+                ExitApp();
+                return;
+            }
+            _vm.AcceptDisclaimer();
+        }
+
         _vm.ExitRequested += ExitApp;
         _window = new MainWindow(_vm);
         _window.Closed += (_, _) => ExitApp();

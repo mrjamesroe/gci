@@ -58,6 +58,8 @@ public sealed class AppSettings
     public DateTimeOffset? LastDiscovery { get; set; }
     public DateTime? LastExpiryReminder { get; set; }
     public bool FirstRunComplete { get; set; }
+    /// <summary>The version tag of the disclaimer the user has accepted (null = never). Re-prompts when the text changes.</summary>
+    public string? DisclaimerAcceptedVersion { get; set; }
 
     public int EffectiveRefreshMinutes => Math.Max(MinimumRefreshMinutes, RefreshMinutes);
 }

@@ -883,6 +883,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void OpenDataFolder() => OpenUrl(_data.Root);
 
+    /// <summary>Records that the user accepted the current first-run disclaimer (see <see cref="Legal"/>).</summary>
+    public void AcceptDisclaimer()
+    {
+        Settings.DisclaimerAcceptedVersion = Legal.Version;
+        SaveSettings();
+        _telemetry.Track("disclaimer_accepted", new Dictionary<string, object?> { ["version"] = Legal.Version });
+    }
+
     // ---- Phone alerts -------------------------------------------------------------------------
 
     /// <summary>Shown once someone has a watch but no phone alerts, since desktop-only alerts miss overnight drops.</summary>

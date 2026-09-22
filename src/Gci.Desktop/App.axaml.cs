@@ -63,23 +63,50 @@ public partial class App : Application
             _vm.ApplyTheme = ApplyThemeVariant;
             ApplyThemeVariant(_vm.Settings.Theme);
 
-            _window = new MainWindow(_vm);
-            desktop.MainWindow = _window;
-            desktop.ShutdownRequested += (_, _) => Teardown();
-
-            var startHidden = false;
-            if (useTray)
+            // Brings up the real window, tray and first refresh. `show` is true only when the lifetime has already
+            // shown its initial window (the deferred, post-disclaimer path) and won't auto-show this one.
+            void StartApp(bool show)
             {
-                SetupTray(_vm);
-                startHidden = args.Contains("--minimized") || _vm.Settings.StartMinimized;
-                if (startHidden)
-                    _window.Opened += HideOnFirstOpen; // shown once by the lifetime, then tucked into the tray
-                _vm.TrayStatusChanged += status => { if (_tray is not null) _tray.ToolTipText = status; };
+                _window = new MainWindow(_vm!);
+                desktop.MainWindow = _window;
+                desktop.ShutdownRequested += (_, _) => Teardown();
+
+                var startHidden = false;
+                if (useTray)
+                {
+                    SetupTray(_vm!);
+                    startHidden = args.Contains("--minimized") || _vm!.Settings.StartMinimized;
+                    if (startHidden)
+                        _window.Opened += HideOnFirstOpen; // shown once, then tucked into the tray
+                    _vm!.TrayStatusChanged += status => { if (_tray is not null) _tray.ToolTipText = status; };
+                }
+                if (show) _window.Show();
+
+                _vm!.RecordLaunch(startHidden ? "minimized" : "normal");
+                // Let the window paint before the first (network) refresh.
+                Dispatcher.UIThread.Post(() => _ = _vm.RefreshAsync(), DispatcherPriority.Background);
             }
 
-            _vm.RecordLaunch(startHidden ? "minimized" : "normal");
-            // Let the window paint before the first (network) refresh.
-            Dispatcher.UIThread.Post(() => _ = _vm.RefreshAsync(), DispatcherPriority.Background);
+            // First-run consent: nothing starts until the disclaimer is accepted. Declining quits.
+            if (_vm.Settings.DisclaimerAcceptedVersion != Legal.Version)
+            {
+                var priorMode = desktop.ShutdownMode;
+                desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown; // closing the disclaimer must not quit the app
+                var disclaimer = new DisclaimerWindow();
+                disclaimer.Closed += (_, _) =>
+                {
+                    if (!disclaimer.Accepted) { desktop.Shutdown(); return; }
+                    _vm!.AcceptDisclaimer();
+                    StartApp(show: true);              // open the real window first,
+                    desktop.ShutdownMode = priorMode;  // then restore the normal quit-on-last-close behavior
+                };
+                desktop.MainWindow = disclaimer;
+                disclaimer.Show();
+            }
+            else
+            {
+                StartApp(show: false);
+            }
         }
 
         base.OnFrameworkInitializationCompleted();
