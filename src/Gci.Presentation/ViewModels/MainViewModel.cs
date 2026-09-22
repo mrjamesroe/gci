@@ -1015,7 +1015,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 UpdateProgress = p * 100;
                 UpdateBannerText = $"Downloading GCI {version}… {p:P0}";
             });
-            var downloaded = await _updates.DownloadAsync(release, _data.PathFor("updates"), progress);
+            var downloaded = await _updates.DownloadUpdateAsync(release, _data.PathFor("updates"), progress);
             stage = "install";
             UpdateBannerText = $"Installing GCI {version} and restarting…";
             _updater.InstallAndRestart(downloaded, _launchArgs);

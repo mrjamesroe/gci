@@ -57,7 +57,7 @@ public partial class App : Application
             _thumbnails = new DesktopThumbnailService(data, userAgent);
             Views.Thumb.Service = _thumbnails;
             _vm = new MainViewModel(data, _inventory, new KeychainProfileStore(data), new DesktopNotifier(), _thumbnails,
-                _feeds, _updates, _sponsors, _telemetry, new MacEmbeddedBrowser(), new NoopUpdateInstaller(), new NoopStartupRegistration(),
+                _feeds, _updates, _sponsors, _telemetry, new MacEmbeddedBrowser(), new MacUpdateInstaller(), new NoopStartupRegistration(),
                 new DesktopSystemSnapshot(), new DesktopClipboard(), new DesktopTicker(TimeSpan.FromSeconds(15)), args);
 
             _vm.ApplyTheme = ApplyThemeVariant;
