@@ -22,6 +22,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly IThumbnailCache _thumbnails;
     private readonly FeedService _feeds;
     private readonly UpdateChecker _updates;
+    private readonly SponsorService _sponsors;
     private readonly IEmbeddedBrowser _browser;
     private readonly IUpdateInstaller _updater;
     private readonly IStartupRegistration _startup;
@@ -39,7 +40,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private bool _bulkStoreEdit;
 
     public MainViewModel(DataStore data, InventoryService inventory, IProfileStore profiles, INotifier notifier,
-        IThumbnailCache thumbnails, FeedService feeds, UpdateChecker updates, TelemetryClient telemetry,
+        IThumbnailCache thumbnails, FeedService feeds, UpdateChecker updates, SponsorService sponsors, TelemetryClient telemetry,
         IEmbeddedBrowser browser, IUpdateInstaller updater, IStartupRegistration startup, ISystemSnapshot systemSnapshot,
         IClipboard clipboard, ITicker ticker, IReadOnlyList<string> launchArgs)
     {
@@ -49,6 +50,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _thumbnails = thumbnails;
         _feeds = feeds;
         _updates = updates;
+        _sponsors = sponsors;
         _browser = browser;
         _updater = updater;
         _startup = startup;
@@ -74,6 +76,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _startMinimized = Settings.StartMinimized;
         _showImages = Settings.ShowImages;
         _checkForUpdates = Settings.CheckForUpdates;
+        _showSponsor = Settings.ShowSponsor;
         _theme = Settings.Theme;
         _showWelcome = !Settings.FirstRunComplete;
 
@@ -93,6 +96,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (EnabledKeys().Select(k => _inventory.GetStatus(k)?.LastSuccess).Max() is { } cached)
             LastRefreshText = $"Updated {cached.LocalDateTime:MMM d, h:mm tt}";
         UpdatePhoneNudge();
+
+        // Show the cached sponsor instantly, then refresh the feed in the background (both no-ops when sponsors are off).
+        if (ShowSponsor) Sponsor = _sponsors.Current();
+        _ = RefreshSponsorAsync();
 
         _ticker.Tick += OnTick;
         _ticker.Start();
@@ -201,6 +208,48 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     partial void OnShowImagesChanged(bool value) { Settings.ShowImages = value; SaveSettings(); TrackSetting("show_images", value); }
+
+    // ---- Sponsor (header awareness slot) ------------------------------------------------------
+
+    /// <summary>The current sponsor message, or null when there's nothing to show.</summary>
+    [ObservableProperty] private Sponsor? _sponsor;
+    [ObservableProperty] private bool _showSponsor;
+
+    /// <summary>True only when sponsors are enabled and one is available, so the header chip binds to a single flag.</summary>
+    public bool HasSponsor => ShowSponsor && Sponsor is not null;
+
+    partial void OnSponsorChanged(Sponsor? value)
+    {
+        OnPropertyChanged(nameof(HasSponsor));
+        if (value is not null && ShowSponsor)
+            _telemetry.TrackOnce($"sponsor_shown:{value.Id}", TimeSpan.FromDays(1), "sponsor_shown",
+                new Dictionary<string, object?> { ["sponsor"] = value.Brand, ["id"] = value.Id });
+    }
+
+    partial void OnShowSponsorChanged(bool value)
+    {
+        Settings.ShowSponsor = value;
+        SaveSettings();
+        OnPropertyChanged(nameof(HasSponsor));
+        TrackSetting("show_sponsor", value);
+        if (value) _ = RefreshSponsorAsync();
+        else Sponsor = null;
+    }
+
+    private async Task RefreshSponsorAsync()
+    {
+        if (!ShowSponsor) return;
+        var sponsor = await _sponsors.RefreshAsync();
+        if (ShowSponsor) Sponsor = sponsor; // the user may have turned it off while the fetch was in flight
+    }
+
+    [RelayCommand]
+    private void OpenSponsor()
+    {
+        if (Sponsor is not { } s) return;
+        _telemetry.Track("sponsor_clicked", new Dictionary<string, object?> { ["sponsor"] = s.Brand, ["id"] = s.Id });
+        OpenUrl(s.Url);
+    }
 
     public string DataFolder => _data.Root;
 

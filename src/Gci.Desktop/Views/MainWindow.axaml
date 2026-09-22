@@ -37,7 +37,7 @@
 
         <!-- ============================== Header ============================== -->
         <Border Grid.Row="0" Background="{StaticResource AccentDark}" Padding="20,12">
-            <Grid ColumnDefinitions="*,Auto">
+            <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="GCI" Foreground="White" FontSize="20" FontWeight="Bold" />
@@ -45,7 +45,23 @@
                     </StackPanel>
                     <TextBlock Text="{Binding Profile.Greeting}" Foreground="#DDEBE2" FontSize="13" Margin="24,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                <!-- Sponsor chip: centered in the header's middle; hidden when there's no active sponsor. Hardware/accessory
+                     brands only, for awareness — clearly labelled, opens the link in the browser. -->
+                <Button Grid.Column="1" Classes="header" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand"
+                        CornerRadius="14" Padding="12,5" Margin="16,0" Command="{Binding OpenSponsorCommand}"
+                        IsVisible="{Binding HasSponsor}" ToolTip.Tip="{Binding Sponsor.Url}">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="#3A6B54" CornerRadius="8" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center">
+                            <TextBlock Text="Sponsored" Foreground="#CFE6D8" FontSize="10" FontWeight="SemiBold" />
+                        </Border>
+                        <TextBlock Text="{Binding Sponsor.Brand}" Foreground="White" FontSize="12" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding Sponsor.Text}" Foreground="#DDEBE2" FontSize="12" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="360" />
+                        <TextBlock Text="↗" Foreground="{StaticResource HeaderSub}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
+                </Button>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding LastRefreshText}" Foreground="White" HorizontalAlignment="Right" />
                         <TextBlock Text="{Binding NextRefreshText}" Foreground="{StaticResource HeaderSub}" FontSize="12" HorizontalAlignment="Right" />
@@ -150,6 +166,17 @@
                             <DataGridTemplateColumn Header="Price" Width="120" SortMemberPath="Price">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate><TextBlock Text="{Binding PriceText}" Classes.sale="{Binding OnSale}" VerticalAlignment="Center" /></DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Deal" Width="94" SortMemberPath="OnSale" CanUserResize="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <!-- Accent pill surfacing a promotion or discount for awareness; hidden when there's none. -->
+                                        <Border Background="{StaticResource Accent}" CornerRadius="9" Padding="8,1" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                IsVisible="{Binding PromoText, Converter={x:Static conv:NotNullConverter.Instance}}">
+                                            <TextBlock Text="{Binding PromoText}" Foreground="White" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        </Border>
+                                    </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Qty" Binding="{Binding QuantityText}" Width="55" SortMemberPath="Quantity" />
@@ -259,10 +286,10 @@
                                             </Border>
                                             <StackPanel Grid.Column="1">
                                                 <WrapPanel>
-                                                    <Border Background="{StaticResource Accent}" CornerRadius="3" Padding="6,1" Margin="0,0,6,4" IsVisible="{Binding IsUnread}">
+                                                    <Border Background="{StaticResource Accent}" CornerRadius="9" Padding="8,1" Margin="0,0,6,4" IsVisible="{Binding IsUnread}">
                                                         <TextBlock Text="NEW" Foreground="White" FontSize="11" FontWeight="Bold" />
                                                     </Border>
-                                                    <Border Background="#FFF4D6" CornerRadius="3" Padding="6,1" Margin="0,0,6,4" IsVisible="{Binding IsMatch}">
+                                                    <Border Background="#FFF4D6" CornerRadius="9" Padding="8,1" Margin="0,0,6,4" IsVisible="{Binding IsMatch}">
                                                         <TextBlock Text="{Binding MatchText}" Foreground="#8A6100" FontSize="11" FontWeight="SemiBold" />
                                                     </Border>
                                                 </WrapPanel>
@@ -408,6 +435,9 @@
                                     <ComboBox MinWidth="140" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" />
                                 </StackPanel>
                                 <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,8,0,0" Text="System follows your Mac's light/dark appearance." />
+                                <CheckBox Content="Show the sponsor message in the header" IsChecked="{Binding ShowSponsor}" Margin="0,12,0,0" />
+                                <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,4,0,0"
+                                           Text="An occasional message from a hardware or accessory sponsor (never a cannabis product), shown for awareness. Turning it off stops GCI from fetching it." />
                             </StackPanel>
                         </Border>
 

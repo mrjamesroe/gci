@@ -26,7 +26,7 @@
 
         <!-- Header -->
         <Border Grid.Row="0" Background="{StaticResource AccentDark}" Padding="20,12">
-            <DockPanel LastChildFill="False">
+            <DockPanel LastChildFill="True">
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                     <Image Source="Assets/gci.ico" Width="34" Height="34" Margin="0,0,12,0" />
                     <StackPanel>
@@ -58,6 +58,33 @@
                         <TextBlock Text="⟳  Refresh now" />
                     </Button>
                 </StackPanel>
+                <!-- Sponsor chip: fills the header's middle band and centers itself; hidden when there's no active sponsor.
+                     Hardware/accessory brands only, for awareness — clearly labelled, opens the link in the browser. -->
+                <Button Command="{Binding OpenSponsorCommand}" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Margin="16,0" ToolTip="{Binding Sponsor.Url}"
+                        Visibility="{Binding HasSponsor, Converter={StaticResource BoolToVis}}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Chip" Background="#24503C" CornerRadius="14" Padding="12,5">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Background="#3A6B54" CornerRadius="8" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Sponsored" Foreground="#CFE6D8" FontSize="10" FontWeight="SemiBold" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Sponsor.Brand}" Foreground="White" FontSize="12" FontWeight="SemiBold"
+                                               VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock Text="{Binding Sponsor.Text}" Foreground="#DDEBE2" FontSize="12" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="380" />
+                                    <TextBlock Text="↗" Foreground="#A9C7B6" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Chip" Property="Background" Value="#2F6249" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
             </DockPanel>
         </Border>
 
@@ -243,6 +270,17 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
+                            <DataGridTemplateColumn Header="Deal" Width="94" SortMemberPath="OnSale" CanUserResize="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <!-- Accent pill surfacing a promotion or discount for awareness; hidden when there's none. -->
+                                        <Border Background="{StaticResource Accent}" CornerRadius="9" Padding="8,1" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                Visibility="{Binding PromoText, Converter={x:Static vm:NotNullToVisibleConverter.Instance}}">
+                                            <TextBlock Text="{Binding PromoText}" Foreground="White" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Qty" Binding="{Binding QuantityText}" SortMemberPath="Quantity" Width="55" />
                             <DataGridTextColumn Header="Potency" Binding="{Binding Potency}" Width="1.1*" />
                             <DataGridTextColumn Header="Type" Binding="{Binding Strain}" Width="75" />
@@ -427,11 +465,11 @@
                                         </Border>
                                         <StackPanel Grid.Column="4">
                                             <WrapPanel>
-                                                <Border Background="{StaticResource Accent}" CornerRadius="3" Padding="6,1" Margin="0,0,6,4"
+                                                <Border Background="{StaticResource Accent}" CornerRadius="9" Padding="8,1" Margin="0,0,6,4"
                                                         Visibility="{Binding IsUnread, Converter={StaticResource BoolToVis}}">
                                                     <TextBlock Text="NEW" Foreground="White" FontSize="11" FontWeight="Bold" />
                                                 </Border>
-                                                <Border Background="#FFF4D6" CornerRadius="3" Padding="6,1" Margin="0,0,6,4"
+                                                <Border Background="#FFF4D6" CornerRadius="9" Padding="8,1" Margin="0,0,6,4"
                                                         Visibility="{Binding IsMatch, Converter={StaticResource BoolToVis}}">
                                                     <TextBlock Text="{Binding MatchText}" Foreground="#8A6100" FontSize="11" FontWeight="SemiBold" />
                                                 </Border>
@@ -615,6 +653,9 @@
                                 </StackPanel>
                                 <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,8,0,0"
                                            Text="System follows your Windows light/dark setting." />
+                                <CheckBox Content="Show the sponsor message in the header" IsChecked="{Binding ShowSponsor}" Margin="0,12,0,0" />
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,4,0,0"
+                                           Text="An occasional message from a hardware or accessory sponsor (never a cannabis product), shown for awareness. Turning it off stops GCI from fetching it." />
                             </StackPanel>
                         </Border>
 

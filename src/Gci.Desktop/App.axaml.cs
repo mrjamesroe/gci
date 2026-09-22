@@ -20,6 +20,7 @@ public partial class App : Application
     private InventoryService? _inventory;
     private FeedService? _feeds;
     private UpdateChecker? _updates;
+    private SponsorService? _sponsors;
     private TelemetryClient? _telemetry;
     private DesktopThumbnailService? _thumbnails;
     private MainViewModel? _vm;
@@ -51,11 +52,12 @@ public partial class App : Application
             _inventory = new InventoryService(data);
             _feeds = new FeedService(data, userAgent: userAgent);
             _updates = new UpdateChecker();
+            _sponsors = new SponsorService(data, userAgent: userAgent);
             _telemetry = new TelemetryClient(data, DesktopSystemSnapshot.SystemInfo());
             _thumbnails = new DesktopThumbnailService(data, userAgent);
             Views.Thumb.Service = _thumbnails;
             _vm = new MainViewModel(data, _inventory, new KeychainProfileStore(data), new DesktopNotifier(), _thumbnails,
-                _feeds, _updates, _telemetry, new NoopEmbeddedBrowser(), new NoopUpdateInstaller(), new NoopStartupRegistration(),
+                _feeds, _updates, _sponsors, _telemetry, new NoopEmbeddedBrowser(), new NoopUpdateInstaller(), new NoopStartupRegistration(),
                 new DesktopSystemSnapshot(), new DesktopClipboard(), new DesktopTicker(TimeSpan.FromSeconds(15)), args);
 
             _vm.ApplyTheme = ApplyThemeVariant;
@@ -145,6 +147,7 @@ public partial class App : Application
         _inventory?.Dispose();
         _feeds?.Dispose();
         _updates?.Dispose();
+        _sponsors?.Dispose();
         _telemetry?.Dispose(); // last: flushes pending events
     }
 }

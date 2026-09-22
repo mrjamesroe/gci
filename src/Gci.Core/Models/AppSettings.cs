@@ -31,6 +31,8 @@ public sealed class AppSettings
     public bool StartMinimized { get; set; }
     public bool ShowImages { get; set; } = true;
     public bool CheckForUpdates { get; set; } = true;
+    /// <summary>Show the sponsor message in the header (hardware/accessory brands, for awareness). On by default.</summary>
+    public bool ShowSponsor { get; set; } = true;
 
     /// <summary>
     /// Detailed, opt-in usage stats: null = not asked yet (the banner still shows), then the user's choice. The basic

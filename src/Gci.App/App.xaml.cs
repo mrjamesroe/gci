@@ -20,6 +20,7 @@ public partial class App : Application
     private ThumbnailService? _thumbnails;
     private FeedService? _feeds;
     private UpdateChecker? _updates;
+    private SponsorService? _sponsors;
     private TelemetryClient? _telemetry;
     private TrayIcon? _tray;
     private MainViewModel? _vm;
@@ -85,8 +86,9 @@ public partial class App : Application
         Thumb.Service = _thumbnails;
         _feeds = new FeedService(data, userAgent: userAgent);
         _updates = new UpdateChecker();
+        _sponsors = new SponsorService(data, userAgent: userAgent);
         _telemetry = new TelemetryClient(data, TelemetryEnvironment.SystemInfo());
-        _vm = new MainViewModel(data, _inventory, new ProfileStore(data), _notifier, _thumbnails, _feeds, _updates, _telemetry,
+        _vm = new MainViewModel(data, _inventory, new ProfileStore(data), _notifier, _thumbnails, _feeds, _updates, _sponsors, _telemetry,
             _browser, new UpdateInstallerService(), new StartupRegistrationService(), new SystemSnapshotService(),
             new WpfClipboard(), new DispatcherTicker(TimeSpan.FromSeconds(15), Dispatcher), e.Args);
         _vm.ApplyTheme = Theming.Apply;
@@ -177,6 +179,8 @@ public partial class App : Application
         _feeds = null;
         _updates?.Dispose();
         _updates = null;
+        _sponsors?.Dispose();
+        _sponsors = null;
         _telemetry?.Dispose(); // last: flushes pending events
         _telemetry = null;
         Shutdown();
