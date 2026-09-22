@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ctrl="clr-namespace:Gci.Desktop.Controls"
+        x:Class="Gci.Desktop.Views.PreorderWindow"
+        x:CompileBindings="False"
+        Width="1100" Height="820" MinWidth="760" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Ground}"
+        Title="Preorder">
+    <Grid RowDefinitions="Auto,*">
+        <Border Grid.Row="0" Background="{StaticResource AccentDark}" Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding StatusText}" Foreground="#DDEBE2" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0" />
+                    <TextBlock Text="{Binding HintText}" Foreground="{StaticResource HeaderSub}" FontSize="12" TextWrapping="Wrap"
+                               Margin="0,2,0,0" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="header" VerticalAlignment="Center" Content="Open in your browser"
+                        Command="{Binding OpenInBrowserCommand}" />
+            </Grid>
+        </Border>
+
+        <ctrl:MacWebView Grid.Row="1" x:Name="Web" />
+    </Grid>
+</Window>

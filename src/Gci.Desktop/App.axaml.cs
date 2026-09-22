@@ -57,7 +57,7 @@ public partial class App : Application
             _thumbnails = new DesktopThumbnailService(data, userAgent);
             Views.Thumb.Service = _thumbnails;
             _vm = new MainViewModel(data, _inventory, new KeychainProfileStore(data), new DesktopNotifier(), _thumbnails,
-                _feeds, _updates, _sponsors, _telemetry, new NoopEmbeddedBrowser(), new NoopUpdateInstaller(), new NoopStartupRegistration(),
+                _feeds, _updates, _sponsors, _telemetry, new MacEmbeddedBrowser(), new NoopUpdateInstaller(), new NoopStartupRegistration(),
                 new DesktopSystemSnapshot(), new DesktopClipboard(), new DesktopTicker(TimeSpan.FromSeconds(15)), args);
 
             _vm.ApplyTheme = ApplyThemeVariant;
@@ -70,6 +70,7 @@ public partial class App : Application
                 _window = new MainWindow(_vm!);
                 desktop.MainWindow = _window;
                 desktop.ShutdownRequested += (_, _) => Teardown();
+                _vm!.ShowPreorder = OpenPreorder; // macOS: open the store checkout in an embedded WKWebView window
 
                 var startHidden = false;
                 if (useTray)
@@ -145,6 +146,23 @@ public partial class App : Application
         };
         _tray.Clicked += (_, _) => ShowWindow();
         TrayIcon.SetIcons(this, new TrayIcons { _tray });
+    }
+
+    private PreorderWindow? _preorder;
+
+    /// <summary>Opens (or reuses) the Preorder window over the main window.</summary>
+    private void OpenPreorder(PreorderViewModel vm)
+    {
+        if (_preorder is null)
+        {
+            _preorder = new PreorderWindow(vm);
+            _preorder.Closed += (_, _) => _preorder = null;
+            if (_window is not null) _preorder.Show(_window); else _preorder.Show();
+        }
+        else
+        {
+            _preorder.Open(vm);
+        }
     }
 
     private void ShowWindow()
