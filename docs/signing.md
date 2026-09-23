@@ -51,8 +51,9 @@ Sectigo, ~$200–400/yr, EV requiring a USB token — also works, but Trusted Si
 | `AZURE_CLIENT_ID` | Application (client) ID (step 6) |
 | `AZURE_CLIENT_SECRET` | client secret Value (step 6) |
 
-The workflow enables Windows signing automatically once `TRUSTED_SIGNING_ACCOUNT` is set. Signing happens **before**
-the `gci.exe.sha256` is computed, so the checksum (and the in-app updater) match the signed binary.
+Then turn it on: set a **repository variable** `SIGN_WINDOWS` = `true` (Settings → Secrets and variables → Actions →
+**Variables**). The workflow gates signing on that variable, so it stays off until you flip it. Signing happens
+**before** the `gci.exe.sha256` is computed, so the checksum (and the in-app updater) match the signed binary.
 
 ---
 
@@ -86,9 +87,9 @@ the `gci.exe.sha256` is computed, so the checksum (and the in-app updater) match
 | `APPLE_ID` | your Apple ID email (step 4) |
 | `APPLE_APP_PASSWORD` | the app-specific password (step 4) |
 
-The workflow enables macOS signing automatically once `MACOS_CERT_P12_BASE64` is set. It signs each `.app` with the
-hardened runtime, submits it to Apple's notary service (`notarytool ... --wait`), and staples the ticket, so the
-first launch on any Mac has no Gatekeeper warning.
+Then turn it on: set a **repository variable** `SIGN_MACOS` = `true`. The workflow signs each `.app` with the hardened
+runtime, submits it to Apple's notary service (`notarytool ... --wait`), and staples the ticket, so the first launch
+on any Mac has no Gatekeeper warning.
 
 ---
 

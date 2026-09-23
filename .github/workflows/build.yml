@@ -17,9 +17,6 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-    # 'true'/'false' strings computed once so the signing steps can gate on them. Referencing a missing secret yields ''.
-    env:
-      SIGN_WIN: ${{ secrets.TRUSTED_SIGNING_ACCOUNT != '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -41,7 +38,7 @@ jobs:
       # Sign the exe BEFORE hashing, so gci.exe.sha256 matches the signed binary the updater downloads.
       # Azure Trusted Signing: no hardware token, ~$10/mo, and the signature builds SmartScreen reputation over time.
       - name: Sign gci.exe (Azure Trusted Signing)
-        if: ${{ startsWith(github.ref, 'refs/tags/v') && env.SIGN_WIN == 'true' }}
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && vars.SIGN_WINDOWS == 'true' }}
         uses: azure/trusted-signing-action@v0.5.9
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -62,7 +59,7 @@ jobs:
         run: |
           $hash = (Get-FileHash publish/gci.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           [IO.File]::WriteAllText("$PWD/publish/gci.exe.sha256", "$hash  gci.exe`n")
-          "gci.exe SHA-256: $hash (signed: ${{ env.SIGN_WIN }})" >> $env:GITHUB_STEP_SUMMARY
+          "gci.exe SHA-256: $hash (signing: ${{ vars.SIGN_WINDOWS == 'true' }})" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Create release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -78,8 +75,6 @@ jobs:
   macos:
     runs-on: macos-latest
     needs: build
-    env:
-      SIGN_MAC: ${{ secrets.MACOS_CERT_P12_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -127,7 +122,7 @@ jobs:
       # Sign with a Developer ID Application cert, notarize, and staple, so first launch has no Gatekeeper warning.
       # Skipped entirely until the Apple secrets are set (see docs/signing.md).
       - name: Sign & notarize the .app bundles
-        if: ${{ startsWith(github.ref, 'refs/tags/v') && env.SIGN_MAC == 'true' }}
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && vars.SIGN_MACOS == 'true' }}
         env:
           CERT_P12: ${{ secrets.MACOS_CERT_P12_BASE64 }}
           CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
