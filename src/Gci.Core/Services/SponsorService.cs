@@ -16,7 +16,7 @@ public sealed record Sponsor(string Id, string Brand, string Text, string Url);
 public sealed class SponsorService : IDisposable
 {
     public const string FileName = "sponsors.json";
-    public const string DefaultFeedUrl = "https://dnyt81fytg524.cloudfront.net/ads.json";
+    public const string DefaultFeedUrl = "https://gcimenu.com/ads.json";
 
     private readonly DataStore _data;
     private readonly HttpClient _http;

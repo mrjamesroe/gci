@@ -248,7 +248,7 @@ file (no guest checkout). Set that account up ahead of time so an alert can beco
 
 ## Web app
 
-Alongside the desktop apps there's a live **web version** at **https://dnyt81fytg524.cloudfront.net** — the same
+Alongside the desktop apps there's a live **web version** at **https://gcimenu.com** — the same
 Georgia menus in any browser, nothing to install:
 
 - **Finder** — search and filter every store's live inventory; sort by price or by **cost per mg of THC** (the real cost
