@@ -5,7 +5,11 @@ into one searchable list, refreshes them on a timer, and notifies you (a desktop
 phone on either platform) when products you watch appear, restock, drop in price, run low, or sell out.
 
 Both builds share one engine and interface. A few features are Windows-only for now — see
-[macOS notes](#macos-notes).
+[macOS notes](#macos-notes). There's also a no-install **[web app](#web-app)** (finder + market dashboard + phone
+alerts) for anyone who'd rather not download anything.
+
+On first run GCI shows a brief, one-time notice covering what it is and isn't — an independent, informational tool, not
+medical advice, with menu data to confirm at the store (it's always in **Settings → About & legal**).
 
 ## Install — Windows
 
@@ -116,6 +120,10 @@ kinds notify. Right-click a product in **Inventory** to watch it at that store, 
 
 Categories are normalized across platforms: Flower, Vape, Concentrate, Edible, Sublingual, Capsule, Oral, Topical,
 Accessory, Apparel. A statewide "Concentrate" watch catches crumble/badder/rosin drops from any operator.
+
+Inventory also shows, per product, a sortable **$/mg THC** column — the real cost of a dose, computed from the potency
+label (for dose-measured products like edibles, tinctures and capsules) — and a **Deal** badge when a store advertises
+a named promotion or the item is discounted.
 
 ## News
 
@@ -237,6 +245,25 @@ ntfy servers work too: paste the topic URL into the Settings box.
 
 GCI can't buy for you: checkout needs your own logged-in store account, and Trulieve requires your medical ID on
 file (no guest checkout). Set that account up ahead of time so an alert can become an order in under a minute.
+
+## Web app
+
+Alongside the desktop apps there's a live **web version** at **https://dnyt81fytg524.cloudfront.net** — the same
+Georgia menus in any browser, nothing to install:
+
+- **Finder** — search and filter every store's live inventory; sort by price or by **cost per mg of THC** (the real cost
+  of a dose); and use **📍 Near me** to rank stores by distance with a one-tap **Directions** link.
+- **Market dashboard** — live analytics across the market: products by category and operator, largest menus, median
+  price and $/mg by category, top brands, and trends (products in stock and daily activity) as history accumulates.
+- **Phone alerts (Web Push)** — the mobile counterpart to the desktop's ntfy alerts. Open the site, add it to your
+  phone's **Home Screen** (required for notifications on iOS), turn on alerts, and pick what to watch; a matching drop,
+  restock or price cut pushes to your phone even with the tab closed. Anonymous — only the push endpoint and your watch
+  terms are stored, never patient details.
+
+The web app reads a hosted copy of the same data, refreshed every 10 minutes, so it works on any device with no setup.
+The **desktop apps stay fully local** — they read the stores directly on your machine and can refresh on demand — while
+the web app is the zero-install option and the basis for future mobile apps. (The hosting/back end is a separate
+project; this repository is the open-source desktop app and shared engine.)
 
 ## Build & run
 
