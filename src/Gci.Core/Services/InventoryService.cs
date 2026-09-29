@@ -166,7 +166,10 @@ public sealed class InventoryService : IDisposable
         List<InventoryItem> items;
         try
         {
-            items = (await _providers[store.Provider].FetchInventoryAsync(store, ct)).ToList();
+            // Paginated menus can return the same item twice when the list shifts between page requests; keep one
+            // row per key so nothing downstream (diff, saved snapshot, UI, watches) ever sees duplicates.
+            items = (await _providers[store.Provider].FetchInventoryAsync(store, ct))
+                .GroupBy(i => i.Key).Select(g => g.First()).ToList();
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
@@ -176,27 +179,36 @@ public sealed class InventoryService : IDisposable
 
         lock (_lock)
         {
-            var previous = _state.Snapshots.GetValueOrDefault(store.Key);
-            if (items.Count == 0 && previous is not null && previous.Count(i => i.InStock) > 5)
+            try
             {
-                RecordFailure(store, now, "Menu came back empty; keeping the previous data.");
+                var previous = _state.Snapshots.GetValueOrDefault(store.Key);
+                if (items.Count == 0 && previous is not null && previous.Count(i => i.InStock) > 5)
+                {
+                    RecordFailure(store, now, "Menu came back empty; keeping the previous data.");
+                    return null;
+                }
+
+                if (!_state.EverSeen.TryGetValue(store.Key, out var seen))
+                    _state.EverSeen[store.Key] = seen = new HashSet<string>();
+
+                var events = InventoryDiffer.Diff(store, previous, items, seen, now);
+                _state.Snapshots[store.Key] = items;
+                _state.Status[store.Key] = new StoreStatus
+                {
+                    StoreKey = store.Key,
+                    LastAttempt = now,
+                    LastSuccess = now,
+                    ItemCount = items.Count,
+                    InStockCount = items.Count(i => i.InStock),
+                };
+                return events;
+            }
+            catch (Exception ex)
+            {
+                // Isolate the store: bad data at one store is recorded against it and every other store still refreshes.
+                RecordFailure(store, now, ex.Message);
                 return null;
             }
-
-            if (!_state.EverSeen.TryGetValue(store.Key, out var seen))
-                _state.EverSeen[store.Key] = seen = new HashSet<string>();
-
-            var events = InventoryDiffer.Diff(store, previous, items, seen, now);
-            _state.Snapshots[store.Key] = items;
-            _state.Status[store.Key] = new StoreStatus
-            {
-                StoreKey = store.Key,
-                LastAttempt = now,
-                LastSuccess = now,
-                ItemCount = items.Count,
-                InStockCount = items.Count(i => i.InStock),
-            };
-            return events;
         }
     }
 

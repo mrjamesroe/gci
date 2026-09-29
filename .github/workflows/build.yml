@@ -60,10 +60,14 @@ jobs:
       - name: Test Gci.Core on macOS
         run: dotnet test tests/Gci.Core.Tests -c Release
 
+      # Stamp the assembly version like the Windows job does: the in-app update check reads it, so without this the
+      # Mac build reported 1.0.0 and offered to "update" to the version it already was.
       - name: Build the cross-platform app for macOS (arm64 + x64)
         run: |
-          dotnet publish src/Gci.Desktop -c Release -r osx-arm64 --self-contained -o build/osx-arm64
-          dotnet publish src/Gci.Desktop -c Release -r osx-x64  --self-contained -o build/osx-x64
+          VERSION="${GITHUB_REF_NAME#v}"
+          case "$VERSION" in ''|*[!0-9.]*) VERSION=0.0.0 ;; esac
+          dotnet publish src/Gci.Desktop -c Release -r osx-arm64 --self-contained -p:Version=$VERSION -o build/osx-arm64
+          dotnet publish src/Gci.Desktop -c Release -r osx-x64  --self-contained -p:Version=$VERSION -o build/osx-x64
 
       # Wrap each publish in a real GCI.app so it's one double-clickable app instead of ~100 loose files. Unsigned for
       # now (Phase 5 adds signing/notarization), so first launch still needs a one-time Gatekeeper override — but only

@@ -21,7 +21,9 @@ public static class InventoryDiffer
         DateTimeOffset now)
     {
         var events = new List<ChangeEvent>();
-        var before = previous?.Where(i => i.InStock).ToDictionary(i => i.Key) ?? new();
+        // Both sides tolerate duplicate keys: a snapshot saved by an older build can contain them (paginated menus
+        // repeat an item when the list shifts between pages), and one bad row must not wedge every later refresh.
+        var before = previous?.Where(i => i.InStock).GroupBy(i => i.Key).ToDictionary(g => g.Key, g => g.First()) ?? new();
         var after = current.Where(i => i.InStock).GroupBy(i => i.Key).ToDictionary(g => g.Key, g => g.First());
 
         if (previous is not null)

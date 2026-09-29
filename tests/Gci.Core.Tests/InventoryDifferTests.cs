@@ -33,6 +33,22 @@ public class InventoryDifferTests
     }
 
     [Fact]
+    public void Duplicate_keys_in_a_saved_snapshot_do_not_throw()
+    {
+        // Older builds could persist the same item twice (a paginated menu repeating a row); every later
+        // refresh then threw "An item with the same key has already been added" and never recovered.
+        var events = Diff([Item("a"), Item("a", qty: 4), Item("b")], [Item("a"), Item("b"), Item("c")]);
+        Assert.Equal("Product c", Assert.Single(events, e => e.Kind == ChangeKind.NewProduct).Name);
+    }
+
+    [Fact]
+    public void Duplicate_keys_in_the_current_refresh_report_one_event()
+    {
+        var events = Diff([Item("a")], [Item("a"), Item("b"), Item("b")]);
+        Assert.Single(events, e => e.Kind == ChangeKind.NewProduct);
+    }
+
+    [Fact]
     public void Unseen_item_is_new_and_previously_seen_item_is_back_in_stock()
     {
         var seen = new HashSet<string>();
