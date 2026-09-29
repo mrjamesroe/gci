@@ -213,8 +213,8 @@ public sealed class TelemetryClient : IDisposable
             ["timestamp"] = now.UtcDateTime.ToString("o"),
             ["platform"] = OsName(),
             ["osName"] = OsName(),
-            ["osVersion"] = _system.OsVersion,
-            ["appVersion"] = _system.AppVersion,
+            ["osVersion"] = Clamp(_system.OsVersion),
+            ["appVersion"] = Clamp(_system.AppVersion),
             ["sdkVersion"] = SdkVersion,
             ["severity"] = fatal ? "fatal" : "error",
             ["kind"] = kind,
@@ -294,11 +294,11 @@ public sealed class TelemetryClient : IDisposable
                 {
                     ["isDebug"] = _system.IsDebug,
                     ["osName"] = OsName(),
-                    ["osVersion"] = _system.OsVersion,
+                    ["osVersion"] = Clamp(_system.OsVersion),
                     ["locale"] = _system.Locale.Length <= 10 ? _system.Locale : _system.Locale[..10],
-                    ["appVersion"] = _system.AppVersion,
-                    ["appBuildNumber"] = _system.AppBuildNumber,
-                    ["deviceModel"] = _system.DeviceModel,
+                    ["appVersion"] = Clamp(_system.AppVersion),
+                    ["appBuildNumber"] = Clamp(_system.AppBuildNumber),
+                    ["deviceModel"] = Clamp(_system.DeviceModel),
                     ["sdkVersion"] = SdkVersion,
                 },
                 ["props"] = e.Props is null ? null : JsonNode.Parse(JsonSerializer.Serialize(e.Props)),
@@ -378,6 +378,9 @@ public sealed class TelemetryClient : IDisposable
         : OperatingSystem.IsMacOS() ? "macOS"
         : OperatingSystem.IsLinux() ? "Linux"
         : "Unknown";
+
+    /// <summary>Aptabase rejects the whole batch (400, which we then drop) if a system prop exceeds 100 characters.</summary>
+    internal static string? Clamp(string? value) => value is { Length: > 100 } ? value[..100] : value;
 
     internal static string? BaseUrlFor(string? appKey)
     {

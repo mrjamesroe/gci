@@ -39,7 +39,10 @@ public sealed class DesktopSystemSnapshot : ISystemSnapshot
     {
         var asm = typeof(DesktopSystemSnapshot).Assembly;
         var version = asm.GetName().Version?.ToString(3) ?? "0.0.0";
-        var os = RuntimeInformation.OSDescription.Trim();
+        // The product version (e.g. 15.1.0), like the WPF app sends — OSDescription is the ~115-char Darwin kernel
+        // banner on macOS, which Aptabase rejects (osVersion max 100), silently dropping every Mac batch.
+        var v = Environment.OSVersion.Version;
+        var os = $"{v.Major}.{v.Minor}.{Math.Max(v.Build, 0)}";
         var model = OperatingSystem.IsMacOS() ? "mac" : OperatingSystem.IsLinux() ? "linux" : "desktop";
 #if DEBUG
         const bool isDebug = true;

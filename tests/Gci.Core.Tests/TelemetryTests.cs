@@ -50,6 +50,20 @@ public sealed class TelemetryTests : IDisposable
     }
 
     [Fact]
+    public async Task Overlong_system_props_are_clamped_so_aptabase_accepts_the_batch()
+    {
+        // macOS's RuntimeInformation.OSDescription is ~115 chars; Aptabase 400s any system prop over 100.
+        var darwin = "Darwin 24.1.0 Darwin Kernel Version 24.1.0: Thu Oct 10 21:02:27 PDT 2024; root:xnu-11215.41.3~2/RELEASE_ARM64_T6000";
+        using var client = new TelemetryClient(new DataStore(_root), System with { OsVersion = darwin }, TelemetryClient.DefaultAppKey, _server, () => _now)
+            { DetailedEnabled = true };
+        client.Track("app_started");
+        await client.FlushAsync();
+
+        var e = JsonNode.Parse(Assert.Single(_server.Requests).Body)!.AsArray().Single()!;
+        Assert.Equal(100, e["systemProps"]!["osVersion"]!.GetValue<string>().Length);
+    }
+
+    [Fact]
     public async Task Large_queues_are_sent_25_at_a_time()
     {
         using var client = NewClient();
