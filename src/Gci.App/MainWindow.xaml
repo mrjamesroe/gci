@@ -193,6 +193,8 @@
                                 <ComboBox ItemsSource="{Binding StoreOptions}" SelectedItem="{Binding SelectedStore}" MinWidth="220" />
                                 <CheckBox Content="In stock only" IsChecked="{Binding InStockOnly}" />
                                 <CheckBox Content="★ Watched only" IsChecked="{Binding WatchedOnly}" />
+                                <CheckBox Content="✦ New/back this week" IsChecked="{Binding FreshOnly}"
+                                          ToolTip="Only products that arrived or came back in stock in the last 7 days" />
                             </WrapPanel>
                         </DockPanel>
                     </Border>
@@ -279,6 +281,33 @@
                                                 Visibility="{Binding PromoText, Converter={x:Static vm:NotNullToVisibleConverter.Instance}}">
                                             <TextBlock Text="{Binding PromoText}" Foreground="White" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                         </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Notes" Width="200" SortMemberPath="NotesRank">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <!-- New/Back badge (arrived or returned this week) and what the price history says; hover for the history. -->
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent"
+                                                    ToolTip="{Binding PriceHistoryText}" ToolTipService.ShowDuration="20000">
+                                            <Border Background="{StaticResource Accent}" CornerRadius="9" Padding="7,1" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                    Visibility="{Binding FreshText, Converter={x:Static vm:NotNullToVisibleConverter.Instance}}">
+                                                <TextBlock Text="{Binding FreshText}" Foreground="White" FontSize="11" FontWeight="SemiBold" />
+                                            </Border>
+                                            <TextBlock Text="{Binding PriceSignal}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding PriceSignalGood}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

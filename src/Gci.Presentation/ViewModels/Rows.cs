@@ -4,7 +4,7 @@ using Gci.Core.Services;
 
 namespace Gci.App.ViewModels;
 
-public sealed class ItemRow(InventoryItem item, StoreInfo store, bool watched)
+public sealed class ItemRow(InventoryItem item, StoreInfo store, bool watched, string? fresh = null, PriceStats? price = null)
 {
     public InventoryItem Item { get; } = item;
     public ImageRef? Image { get; } = item.ImageUrl is { } url ? new ImageRef(item.Key, url, item.ThumbnailUrl) : null;
@@ -38,6 +38,28 @@ public sealed class ItemRow(InventoryItem item, StoreInfo store, bool watched)
     public string Operator => Store.Operator;
     public string? City => Store.City;
     public string? Url => Item.Url;
+
+    // ---- Notes: "new / back this week" (from the change log) and what the price history says (see PriceHistory) ----
+
+    /// <summary>"New" or "Back" when the item arrived or returned in the last week and is still in stock.</summary>
+    public string? FreshText => !InStock ? null : fresh switch { "new" => "New", "back" => "Back", _ => null };
+    public PriceStats? PriceStats { get; } = price;
+    public string? PriceSignal => PriceStats switch
+    {
+        null => null,
+        { Lowest30: true, Below: true } => $"Lowest in 30 days · usually {PriceStats.Usual:C0}",
+        { Lowest30: true } => "Lowest in 30 days",
+        { Below: true } => $"Usually {PriceStats.Usual:C0} · {PriceStats.Percent}% less",
+        { Above: true } => $"Usually {PriceStats.Usual:C0} · up {PriceStats.Percent}%",
+        _ => "Price history",
+    };
+    public bool PriceSignalGood => PriceStats is { Lowest30: true } or { Below: true };
+    /// <summary>Sort key for the Notes column: new, then back, then good prices, then price increases.</summary>
+    public int NotesRank => (FreshText == "New" ? 8 : FreshText == "Back" ? 4 : 0) + (PriceSignalGood ? 2 : PriceStats is { Above: true } ? 1 : 0);
+    public string? PriceHistoryText => PriceStats is null ? null : string.Join(Environment.NewLine,
+        new[] { $"Usual {PriceStats.Usual:C0} · 30-day low {PriceStats.Low30:C0} · high {PriceStats.High:C0}" }
+            .Concat(PriceStats.Changes.OrderByDescending(c => c.At).Take(12)
+                .Select(c => $"{c.At.LocalDateTime:MMM d}: {c.Old:C0} → {c.New:C0}")));
 }
 
 public sealed partial class StoreRow(StoreInfo store, bool enabled, Action<StoreRow> onToggled) : ObservableObject

@@ -35,6 +35,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly ITicker _ticker;
     private readonly List<WatchRule> _watches;
     private List<ItemRow> _allRows = new();
+    private readonly PriceHistory _prices;
     private DateTimeOffset _nextRefresh = DateTimeOffset.Now.AddSeconds(2);
     private CancellationTokenSource? _refreshCts;
     private bool _bulkStoreEdit;
@@ -64,6 +65,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _watches = data.Load(WatchesFile, () => new List<WatchRule>());
         InitTelemetry(telemetry);
         Profile = new ProfileViewModel(profiles, telemetry);
+        _prices = LoadPriceHistory(data, inventory);
 
         // Assign backing fields directly so loading doesn't re-save settings through the change hooks.
 #pragma warning disable MVVMTK0034
@@ -130,6 +132,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private Option<string?> _selectedStore;
     [ObservableProperty] private bool _inStockOnly = true;
     [ObservableProperty] private bool _watchedOnly;
+    [ObservableProperty] private bool _freshOnly;
     [ObservableProperty] private IReadOnlyList<ItemRow> _rows = [];
     [ObservableProperty] private ItemRow? _selectedRow;
     [ObservableProperty] private string _resultSummary = "";
@@ -146,6 +149,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
     partial void OnInStockOnlyChanged(bool value) { ApplyFilters(); TrackFilter("in_stock_only", value.ToString()); }
     partial void OnWatchedOnlyChanged(bool value) { ApplyFilters(); TrackFilter("watched_only", value.ToString()); }
+    partial void OnFreshOnlyChanged(bool value) { ApplyFilters(); TrackFilter("fresh_only", value.ToString()); }
 
     // ---- Status -------------------------------------------------------------------------------
 
@@ -327,6 +331,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             var stopwatch = Stopwatch.StartNew();
             var result = await Task.Run(() => _inventory.RefreshAsync(keys, token, progress), token);
             stopwatch.Stop();
+            RecordPrices(result.Events);
 
             RefreshStoreStatuses();
             RebuildAllRows();
@@ -461,12 +466,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var stores = _inventory.Stores.ToDictionary(s => s.Key);
         var enabled = EnabledKeys();
         var watches = _watches.Where(w => w.Enabled).ToList();
+        var now = DateTimeOffset.Now;
+        var fresh = FreshThisWeek(now);
         _allRows = _inventory.GetItems(enabled)
             .Where(i => stores.ContainsKey(i.StoreKey))
             .Select(i =>
             {
                 var store = stores[i.StoreKey];
-                return new ItemRow(i, store, watches.Any(w => WatchMatcher.Matches(w, i, store)));
+                return new ItemRow(i, store, watches.Any(w => WatchMatcher.Matches(w, i, store)),
+                    fresh.GetValueOrDefault(i.Key), _prices.StatsFor(i.Key, i.EffectivePrice, now));
             })
             .ToList();
 
@@ -494,6 +502,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         IEnumerable<ItemRow> rows = _allRows;
         if (InStockOnly) rows = rows.Where(r => r.InStock);
         if (WatchedOnly) rows = rows.Where(r => r.Watched);
+        if (FreshOnly) rows = rows.Where(r => r.FreshText is not null);
         if (SelectedCategory?.Value is { } c) rows = rows.Where(r => r.Item.Category == c);
         if (SelectedOperator?.Value is { } op) rows = rows.Where(r => r.Operator == op);
         if (SelectedStore?.Value is { } store) rows = rows.Where(r => r.Store.Key == store);
@@ -517,7 +526,56 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SelectedOperator = OperatorOptions.FirstOrDefault() ?? SelectedOperator;
         SelectedStore = StoreOptions.FirstOrDefault() ?? SelectedStore;
         WatchedOnly = false;
+        FreshOnly = false;
         InStockOnly = true;
+    }
+
+    // ---- New this week / price history ---------------------------------------------------------
+
+    /// <summary>Item key → "new" or "back" for items that arrived or returned in the last 7 days, from the change log
+    /// (newest first, so the latest arrival wins).</summary>
+    private Dictionary<string, string> FreshThisWeek(DateTimeOffset now)
+    {
+        var since = now.AddDays(-7);
+        var fresh = new Dictionary<string, string>();
+        foreach (var e in _inventory.Changes)
+        {
+            if (e.At < since) continue;
+            if (e.Kind is ChangeKind.NewProduct or ChangeKind.BackInStock && !fresh.ContainsKey(e.ItemKey))
+                fresh[e.ItemKey] = e.Kind == ChangeKind.NewProduct ? "new" : "back";
+        }
+        return fresh;
+    }
+
+    /// <summary>Loads (or, the first time, seeds from the change log) the price history. Never allowed to stop the app
+    /// starting: an unreadable file just means starting a fresh history.</summary>
+    private static PriceHistory LoadPriceHistory(DataStore data, InventoryService inventory)
+    {
+        try
+        {
+            var seeded = !File.Exists(data.PathFor(PriceHistory.FileName));
+            var history = PriceHistory.Load(data, inventory.Changes, DateTimeOffset.Now);
+            if (seeded) history.Save(data);
+            return history;
+        }
+        catch (Exception)
+        {
+            return new PriceHistory { Since = DateTimeOffset.Now };
+        }
+    }
+
+    private void RecordPrices(IReadOnlyList<ChangeEvent> events)
+    {
+        try
+        {
+            var changed = _prices.Record(events);
+            _prices.Prune(DateTimeOffset.Now);
+            if (changed) _prices.Save(_data);
+        }
+        catch (Exception)
+        {
+            // Price history is a nicety; a disk hiccup here must never fail a refresh.
+        }
     }
 
     [RelayCommand]
