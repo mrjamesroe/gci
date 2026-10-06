@@ -62,6 +62,9 @@ public partial class App : Application
 
             _vm.ApplyTheme = ApplyThemeVariant;
             ApplyThemeVariant(_vm.Settings.Theme);
+            // Install update hands the bundle swap to a helper script that waits for this process to exit, so the app
+            // must quit itself here (as the WPF app does) — otherwise the update only lands after a manual quit.
+            _vm.ExitRequested += () => Dispatcher.UIThread.Post(ExitApp);
 
             // Brings up the real window, tray and first refresh. `show` is true only when the lifetime has already
             // shown its initial window (the deferred, post-disclaimer path) and won't auto-show this one.
