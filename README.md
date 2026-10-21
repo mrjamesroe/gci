@@ -8,6 +8,9 @@ Both builds share one engine and interface. A few features are Windows-only for 
 [macOS notes](#macos-notes). There's also a no-install **[web app](#web-app)** (finder + market dashboard + phone
 alerts) for anyone who'd rather not download anything.
 
+What's changed in each version: **[version history & release notes](CHANGELOG.md)** (also linked from the version
+number in **Settings → Updates**).
+
 On first run GCI shows a brief, one-time notice covering what it is and isn't — an independent, informational tool, not
 medical advice, with menu data to confirm at the store (it's always in **Settings → About & legal**).
 
@@ -310,6 +313,9 @@ tests both platforms and publishes one GitHub release using the tag message as r
 ```bash
 git tag -a v1.5.0 -m "What changed in this version"
 ```
+
+Add the version to [CHANGELOG.md](CHANGELOG.md) (newest first, user-facing wording) in the commit you tag — the app's
+version link and the "What's new" button after an update both open it.
 
 ```bash
 git push origin v1.5.0

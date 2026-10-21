@@ -499,9 +499,16 @@
                         <Border Classes="card">
                             <StackPanel>
                                 <TextBlock Text="Updates" Classes="section" Margin="0,0,0,6" />
-                                <TextBlock>
-                                    <Run Text="You have GCI" /><Run Text=" " /><Run Text="{Binding CurrentVersion, Mode=OneWay}" FontWeight="SemiBold" />
-                                </TextBlock>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="You have" VerticalAlignment="Center" />
+                                    <HyperlinkButton Padding="0" VerticalAlignment="Center" Command="{Binding OpenUrlCommand}" CommandParameter="{Binding ChangelogPage}"
+                                                     ToolTip.Tip="Version history and release notes for every version">
+                                        <TextBlock FontWeight="SemiBold"><Run Text="GCI " /><Run Text="{Binding CurrentVersion, Mode=OneWay}" /></TextBlock>
+                                    </HyperlinkButton>
+                                    <TextBlock Text="·" VerticalAlignment="Center" Classes="muted" />
+                                    <HyperlinkButton Padding="0" VerticalAlignment="Center" Content="Version history &amp; release notes"
+                                                     Command="{Binding OpenUrlCommand}" CommandParameter="{Binding ChangelogPage}" />
+                                </StackPanel>
                                 <CheckBox Content="Check GitHub for new versions automatically" IsChecked="{Binding CheckForUpdates}" Margin="0,8,0,0" />
                                 <TextBlock Text="{Binding UpdateStatusText}" TextWrapping="Wrap" Classes="muted" Margin="0,8,0,0" />
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Spacing="8">

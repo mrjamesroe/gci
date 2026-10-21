@@ -113,7 +113,7 @@ public partial class App : Application
         {
             _ = UpdateInstaller.CleanupAsync();
             _notifier.ShowToast($"GCI updated to {_vm.CurrentVersion}", "Your watches, settings and history carried over.",
-                "GCI", _vm.ReleasesPage, null, "What's new");
+                "GCI", _vm.ChangelogPage, null, "What's new");
         }
 
         void TrayAction(string action) => _vm.TrackEvent("tray_action", new() { ["action"] = action });

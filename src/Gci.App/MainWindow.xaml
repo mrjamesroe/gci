@@ -761,8 +761,13 @@
                             <StackPanel>
                                 <TextBlock Text="Updates" Style="{StaticResource SectionTitle}" />
                                 <TextBlock>
-                                    <Run Text="You have GCI" />
-                                    <Run Text="{Binding CurrentVersion, Mode=OneWay}" FontWeight="SemiBold" />
+                                    <Run Text="You have" />
+                                    <Hyperlink Command="{Binding OpenUrlCommand}" CommandParameter="{Binding ChangelogPage}"
+                                               ToolTip="Version history and release notes for every version">
+                                        <Run Text="GCI" FontWeight="SemiBold" /><Run Text=" " /><Run Text="{Binding CurrentVersion, Mode=OneWay}" FontWeight="SemiBold" />
+                                    </Hyperlink>
+                                    <Run Text=" · " />
+                                    <Hyperlink Command="{Binding OpenUrlCommand}" CommandParameter="{Binding ChangelogPage}">Version history &amp; release notes</Hyperlink>
                                 </TextBlock>
                                 <CheckBox Content="Check GitHub for new versions automatically (at startup and daily)" IsChecked="{Binding CheckForUpdates}" Margin="0,8,0,0" />
                                 <TextBlock Text="{Binding UpdateStatusText}" TextWrapping="Wrap" Style="{StaticResource Muted}" Margin="0,8,0,0" />

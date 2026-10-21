@@ -982,6 +982,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public string CurrentVersion { get; }
     public string ReleasesPage => _updates.ReleasesPage;
+    public string ChangelogPage => _updates.ChangelogPage;
     [ObservableProperty] private bool _checkForUpdates;
     [ObservableProperty] private string _updateStatusText = "";
     [ObservableProperty] private ReleaseInfo? _availableUpdate;

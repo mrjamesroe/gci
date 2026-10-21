@@ -47,6 +47,8 @@ public sealed partial class UpdateChecker : IDisposable
     }
 
     public string ReleasesPage => $"https://github.com/{_repository}/releases";
+    /// <summary>Version history with release notes for every version (CHANGELOG.md in the repo).</summary>
+    public string ChangelogPage => $"https://github.com/{_repository}/blob/main/CHANGELOG.md";
 
     /// <summary>The latest published (non-draft, non-prerelease) release, or null when there isn't one.</summary>
     public async Task<ReleaseInfo?> GetLatestAsync(CancellationToken ct = default)
