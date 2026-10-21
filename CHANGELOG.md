@@ -4,7 +4,8 @@ Release notes for every version of the GCI desktop app (Windows and macOS), newe
 version are on the [releases page](https://github.com/mrjamesroe/gci/releases). Your watches, settings and history
 carry over every update.
 
-The web app at [gcimenu.com](https://gcimenu.com) updates continuously and isn't versioned.
+The web app at [gcimenu.com](https://gcimenu.com) updates continuously; see
+[what's new on the web](https://gcimenu.com/whats-new.html).
 
 ---
 
