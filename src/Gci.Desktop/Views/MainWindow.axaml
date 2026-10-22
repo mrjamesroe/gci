@@ -128,6 +128,10 @@
                                 <ComboBox Margin="0,0,8,4" MinWidth="150" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory}" />
                                 <ComboBox Margin="0,0,8,4" MinWidth="150" ItemsSource="{Binding OperatorOptions}" SelectedItem="{Binding SelectedOperator}" />
                                 <ComboBox Margin="0,0,8,4" MinWidth="220" ItemsSource="{Binding StoreOptions}" SelectedItem="{Binding SelectedStore}" />
+                                <ComboBox Margin="0,0,8,4" MinWidth="160" MaxDropDownHeight="420" ItemsSource="{Binding BrandOptions}" SelectedItem="{Binding SelectedBrand}"
+                                          ToolTip.Tip="Type a brand's first letters to jump to it" />
+                                <ComboBox Margin="0,0,8,4" MinWidth="140" ItemsSource="{Binding StrainOptions}" SelectedItem="{Binding SelectedStrain}"
+                                          ToolTip.Tip="Indica, sativa, hybrid or CBD / ratio, as the store's menu lists it" />
                                 <CheckBox Margin="0,0,14,0" Content="In stock only" IsChecked="{Binding InStockOnly}" />
                                 <CheckBox Margin="0,0,14,0" Content="★ Watched only" IsChecked="{Binding WatchedOnly}" />
                                 <CheckBox Margin="0,0,14,0" Content="✦ New/back this week" IsChecked="{Binding FreshOnly}"

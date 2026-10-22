@@ -87,6 +87,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _selectedCategory = CategoryOptions[0];
         _selectedOperator = new Option<string?>(null, "All operators");
         _selectedStore = new Option<string?>(null, "All monitored stores");
+        _selectedBrand = new Option<string?>(null, "All brands");
+        StrainOptions = new[] { new Option<string?>(null, "All strain types") }
+            .Concat(StrainType.All.Select(s => new Option<string?>(s, s))).ToList();
+        _selectedStrain = StrainOptions[0];
 #pragma warning restore MVVMTK0034
 
         RebuildStores();
@@ -125,11 +129,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public IReadOnlyList<Option<ProductCategory?>> CategoryOptions { get; }
     public ObservableCollection<Option<string?>> OperatorOptions { get; } = new();
     public ObservableCollection<Option<string?>> StoreOptions { get; } = new();
+    /// <summary>Brands on the monitored stores' menus; the value is the case-folded brand (see ItemRow.BrandKey).</summary>
+    public ObservableCollection<Option<string?>> BrandOptions { get; } = new();
+    public IReadOnlyList<Option<string?>> StrainOptions { get; }
 
     [ObservableProperty] private string _searchText = "";
     [ObservableProperty] private Option<ProductCategory?> _selectedCategory;
     [ObservableProperty] private Option<string?> _selectedOperator;
     [ObservableProperty] private Option<string?> _selectedStore;
+    [ObservableProperty] private Option<string?> _selectedBrand;
+    [ObservableProperty] private Option<string?> _selectedStrain;
     [ObservableProperty] private bool _inStockOnly = true;
     [ObservableProperty] private bool _watchedOnly;
     [ObservableProperty] private bool _freshOnly;
@@ -147,6 +156,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ApplyFilters();
         TrackFilter("store", value?.Value is { } key ? _inventory.GetStore(key)?.DisplayName : null);
     }
+    partial void OnSelectedBrandChanged(Option<string?> value) { ApplyFilters(); TrackFilter("brand", value?.Value is null ? null : value.Label); }
+    partial void OnSelectedStrainChanged(Option<string?> value) { ApplyFilters(); TrackFilter("strain", value?.Value); }
     partial void OnInStockOnlyChanged(bool value) { ApplyFilters(); TrackFilter("in_stock_only", value.ToString()); }
     partial void OnWatchedOnlyChanged(bool value) { ApplyFilters(); TrackFilter("watched_only", value.ToString()); }
     partial void OnFreshOnlyChanged(bool value) { ApplyFilters(); TrackFilter("fresh_only", value.ToString()); }
@@ -484,6 +495,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             enabled.Select(k => stores[k]).OrderBy(s => s.DisplayName).Select(s => new Option<string?>(s.Key, s.DisplayName)));
         SelectedOperator = OperatorOptions.FirstOrDefault(o => o.Value == SelectedOperator?.Value) ?? OperatorOptions[0];
         SelectedStore = StoreOptions.FirstOrDefault(o => o.Value == SelectedStore?.Value) ?? StoreOptions[0];
+        // One entry per brand, spelled the way most listings spell it.
+        var brands = _allRows.Where(r => r.BrandKey is not null).GroupBy(r => r.BrandKey!)
+            .Select(g => new Option<string?>(g.Key, g.GroupBy(r => r.Brand!.Trim()).OrderByDescending(x => x.Count()).First().Key))
+            .OrderBy(o => o.Label, StringComparer.OrdinalIgnoreCase);
+        SyncOptions(BrandOptions, new Option<string?>(null, "All brands"), brands);
+        SelectedBrand = BrandOptions.FirstOrDefault(o => o.Value == SelectedBrand?.Value) ?? BrandOptions[0];
         ApplyFilters();
         UpdateWatchCounts();
     }
@@ -506,6 +523,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (SelectedCategory?.Value is { } c) rows = rows.Where(r => r.Item.Category == c);
         if (SelectedOperator?.Value is { } op) rows = rows.Where(r => r.Operator == op);
         if (SelectedStore?.Value is { } store) rows = rows.Where(r => r.Store.Key == store);
+        if (SelectedBrand?.Value is { } brand) rows = rows.Where(r => r.BrandKey == brand);
+        if (SelectedStrain?.Value is { } strain) rows = rows.Where(r => r.StrainGroup == strain);
         if (words.Length > 0)
             rows = rows.Where(r =>
             {
@@ -525,6 +544,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SelectedCategory = CategoryOptions[0];
         SelectedOperator = OperatorOptions.FirstOrDefault() ?? SelectedOperator;
         SelectedStore = StoreOptions.FirstOrDefault() ?? SelectedStore;
+        SelectedBrand = BrandOptions.FirstOrDefault() ?? SelectedBrand;
+        SelectedStrain = StrainOptions[0];
         WatchedOnly = false;
         FreshOnly = false;
         InStockOnly = true;
@@ -864,7 +885,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             Category = SelectedCategory?.Value,
             Operator = SelectedOperator?.Value,
-            Keywords = string.IsNullOrWhiteSpace(SearchText) ? new() : new() { SearchText.Trim() },
+            // A brand narrows the keyword (every word of a keyword must match), so it also works for change alerts.
+            Keywords = $"{(SelectedBrand?.Value is null ? "" : SelectedBrand.Label)} {SearchText}".Trim() is { Length: > 0 } k ? new() { k } : new(),
         };
         if (SelectedStore?.Value is { } store) rule.StoreKeys.Add(store);
         rule.Name = rule.Summary == "Everything" ? "Everything" : rule.Summary;

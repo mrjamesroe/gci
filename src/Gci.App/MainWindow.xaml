@@ -182,7 +182,17 @@
                                         ToolTip="Create a watch from the current search and filters" />
                             </StackPanel>
                             <WrapPanel VerticalAlignment="Center">
-                                <Grid Width="260" Margin="0,0,8,0">
+                                <!-- Same height and spacing on every line, so filters that wrap on a narrow window don't shrink. -->
+                                <WrapPanel.Resources>
+                                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                        <Setter Property="MinHeight" Value="30" />
+                                        <Setter Property="Margin" Value="0,3,8,3" />
+                                    </Style>
+                                    <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                                        <Setter Property="VerticalAlignment" Value="Center" />
+                                    </Style>
+                                </WrapPanel.Resources>
+                                <Grid Width="260" Margin="0,3,8,3">
                                     <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=150}" />
                                     <TextBlock Text="Search products, brands, stores…" Style="{StaticResource Muted}" IsHitTestVisible="False"
                                                Margin="9,0,0,0" VerticalAlignment="Center"
@@ -191,6 +201,10 @@
                                 <ComboBox ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory}" />
                                 <ComboBox ItemsSource="{Binding OperatorOptions}" SelectedItem="{Binding SelectedOperator}" />
                                 <ComboBox ItemsSource="{Binding StoreOptions}" SelectedItem="{Binding SelectedStore}" MinWidth="220" />
+                                <ComboBox ItemsSource="{Binding BrandOptions}" SelectedItem="{Binding SelectedBrand}" MinWidth="160" MaxDropDownHeight="420"
+                                          ToolTip="Type a brand's first letters to jump to it" />
+                                <ComboBox ItemsSource="{Binding StrainOptions}" SelectedItem="{Binding SelectedStrain}" MinWidth="140"
+                                          ToolTip="Indica, sativa, hybrid or CBD / ratio, as the store's menu lists it" />
                                 <CheckBox Content="In stock only" IsChecked="{Binding InStockOnly}" />
                                 <CheckBox Content="★ Watched only" IsChecked="{Binding WatchedOnly}" />
                                 <CheckBox Content="✦ New/back this week" IsChecked="{Binding FreshOnly}"

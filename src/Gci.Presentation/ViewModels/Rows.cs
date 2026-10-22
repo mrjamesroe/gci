@@ -17,6 +17,10 @@ public sealed class ItemRow(InventoryItem item, StoreInfo store, bool watched, s
     public string? Size => Item.Size;
     public string? Potency => Item.Potency;
     public string? Strain => Item.Strain;
+    /// <summary>Indica / Sativa / Hybrid / CBD / ratio, for the strain filter (null when the menu doesn't say).</summary>
+    public string? StrainGroup { get; } = StrainType.Of(item.Strain);
+    /// <summary>The brand folded for filtering, so "comffy" and "Comffy" count as one brand.</summary>
+    public string? BrandKey { get; } = string.IsNullOrWhiteSpace(item.Brand) ? null : item.Brand.Trim().ToLowerInvariant();
     public decimal? Price => Item.EffectivePrice;
     public string PriceText => Item.SalePrice is { } sale
         ? $"{sale:C0} (was {Item.Price:C0})"
