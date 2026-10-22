@@ -9,6 +9,12 @@ The web app at [gcimenu.com](https://gcimenu.com) updates continuously; see
 
 ---
 
+## 1.6.9 — October 22, 2026
+
+- **Inventory: Brand and Strain type filters**, next to the store picker. Pick a brand to see only its products, and
+  narrow to Indica, Sativa, Hybrid or CBD / ratio. **★ Watch these filters** includes the brand you picked.
+- Filters that wrap onto a second row on a narrower window are now full size.
+
 ## 1.6.8 — October 21, 2026
 
 - **Settings → Updates:** the version number is now a link to this version history, with release notes for every
